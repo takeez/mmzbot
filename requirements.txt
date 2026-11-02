@@ -1,0 +1,4 @@
+# 语义记忆的运行时依赖（默认安装，不是可选）
+onnxruntime>=1.16
+tokenizers>=0.15
+numpy>=1.24

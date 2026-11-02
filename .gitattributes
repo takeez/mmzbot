@@ -1,0 +1,15 @@
+# 换行符：**这些文件必须 LF**，否则会出"静默失败"。
+#
+# ⚠️ Windows 上 `core.autocrlf=true` 会把 checkout 出来的 `.sh` 变成 CRLF，
+#    传到 Termux / Linux 上 bash 直接报 `$'\r': command not found`，
+#    而且**不会有任何日志**（脚本根本没跑起来）—— 这个坑踩过。
+#    `.gitattributes` 的 eol 优先级高于 core.autocrlf，所以这里钉死。
+*.sh            text eol=lf
+*.service       text eol=lf
+*.yml           text eol=lf
+Dockerfile      text eol=lf
+*.py            text eol=lf
+*.md            text eol=lf
+*.json          text eol=lf
+# Windows 脚本保持 CRLF（记事本 / 老编辑器看着正常）
+*.ps1           text eol=crlf

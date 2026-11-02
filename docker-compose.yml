@@ -1,0 +1,60 @@
+# MMZBOT + NapCat（QQ 协议端）并排跑。
+#
+#    docker compose up -d              # 起来（第一次会 build 镜像）
+#    docker compose logs -f mmzbot     # 看日志
+#    docker compose down               # 停（数据在卷里，不会丢）
+#
+# 起来之后：
+#   · 面板 http://<这台机器的IP>:17383/panel
+#   · 数据卷 mmzbot-data 里是 config.json / local-config.json / memory.json / bot.log …
+#   · NapCat 面板 http://<这台机器的IP>:6099/ （扫一次码登录 QQ）
+#
+# ⚠️ 面板里 NapCat 的地址填 http://napcat:3000（同一个 compose 网络里的服务名），
+#    token 两边填同一个（NapCat 的 WebUI 里配 HTTP 服务器的 token）。
+
+services:
+  mmzbot:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: mmzbot:latest
+    container_name: mmzbot
+    restart: unless-stopped
+    ports:
+      - "17383:17383"
+    environment:
+      # 数据目录（所有状态 / 配置 / 日志都在这一个卷里）
+      MMZBOT_DATA: /data
+      # 时区：不写也行（默认就是 Asia/Shanghai）；不依赖 tzdata
+      MMZBOT_TZ: Asia/Shanghai
+      # 想固定 UTC 偏移（没有时区名可用时）：MMZBOT_UTC_OFFSET: "+08:00"
+      #
+      # 面板来源白名单：Docker 端口映射进来的请求，来源是**网桥地址**（172.x），
+      # 不在白名单里面板会 403。这一行只放 docker 网段，公网来源照样进不来。
+      # 想从真实局域网访问（浏览器在别的机器上）：改成你自己的网段，例如
+      #   MMZBOT_ALLOW_IPS: "172.16.0.0/12,192.168.1.0/24"
+      # 只在**第一次**（/data/local-config.json 还不存在）写一次，之后改这个文件。
+      MMZBOT_ALLOW_IPS: "172.16.0.0/12"
+    volumes:
+      - mmzbot-data:/data
+
+  # NapCat：QQ 协议端。不想在这儿跑（比如已经有一台）就把这一段删掉。
+  napcat:
+    image: mlikiowa/napcat-docker:latest
+    container_name: napcat
+    restart: unless-stopped
+    environment:
+      - NAPCAT_UID=1000
+      - NAPCAT_GID=1000
+    ports:
+      # 3000 = HTTP API（她调它）；6099 = WebUI（你扫码登录 QQ）
+      - "3000:3000"
+      - "6099:6099"
+    volumes:
+      - napcat-config:/app/napcat/config
+      - napcat-qq:/app/.config/QQ
+
+volumes:
+  mmzbot-data:
+  napcat-config:
+  napcat-qq:

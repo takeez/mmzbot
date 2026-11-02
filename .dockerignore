@@ -1,0 +1,31 @@
+# Docker 构建上下文里不需要的东西（镜像越小越好）
+.git
+.gitignore
+__pycache__
+**/__pycache__
+*.pyc
+*.pyo
+*.log
+*.log.*
+bot.log
+bot.log.1
+# 本机状态 / 密钥（绝不打进镜像）
+local-config.json
+memory.json
+vectors.json
+reminders.json
+settings.json
+users.json
+groups.json
+seen-groups.json
+group-names.json
+requests.json
+status-cache.json
+runtime.json
+plan-*.json
+memory-backup-*.json
+llm-key.txt
+llm-apis.txt
+search-key.txt
+*.bak
+dist
