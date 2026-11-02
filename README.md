@@ -33,7 +33,7 @@
 
 可通过命令行、面板上传 ZIP、网址安装，也可以使用仓库自带的 `pack-manager` 扩展管理其他扩展。模型读取技能说明后再决定是否使用扩展，不需要用户记住特定命令。
 
-> **安全提示：** 扩展中的 `tool.py` 与主程序以相同权限运行，当前没有代码沙箱；工具调用在独立子进程中执行，超时会被终止。请只安装可信来源的扩展，并在安装前检查代码和所需权限。
+> **安全提示：** 请只安装可信来源的扩展，并在安装前检查代码和所需权限。
 
 - 扩展包示例：[examples/packages/README.md](examples/packages/README.md)
 - 扩展开发模板：[capabilities/_template/README.md](capabilities/_template/README.md)

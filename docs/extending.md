@@ -31,7 +31,7 @@ python phone-bot-v2.py --remove-capability <包名>
 python phone-bot-v2.py --install-capability examples/packages/pc-status-1.0.0.zip
 ```
 
-该示例默认不安装。扩展包包含 Python 工具代码，与主程序以相同权限运行；项目不提供代码沙箱。请只安装可信来源的扩展，并在安装前审阅代码和所需权限。
+该示例默认不安装。扩展包包含 Python 工具代码，在独立子进程中运行；请只安装可信来源的扩展，并在安装前审阅代码。
 
 ## 开发资源
 
