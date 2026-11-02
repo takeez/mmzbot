@@ -1254,6 +1254,31 @@ def _backup_name(dest):
     return p
 
 
+def _record_provenance(name, src, cap):
+    """把来源记在**包自己的目录里**（`.provenance.json`）。
+
+    ⚠ 为什么不放数据目录根下：那会多出一个状态文件，
+      而且卸载 / 回滚 / 自检都要额外照顾它。放在包里则随包一起来、一起走。
+    内容：来源路径、sha256、工具名、装的时间。写失败只记日志，不影响安装。
+    """
+    try:
+        src_abs = os.path.abspath(str(src or ""))
+        sha = _sha256_path(src_abs) if os.path.isfile(src_abs) else _sha256_dir(cap.dir)
+        rec = {
+            "来源": src_abs,
+            "sha256": sha,
+            "工具": [t["name"] for t in cap.tools],
+            "装的时间": time.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        path = os.path.join(cap.dir, ".provenance.json")
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write(json.dumps(rec, ensure_ascii=False, indent=2) + "\n")
+        os.replace(tmp, path)
+    except Exception as e:
+        base.log("扩展：来源记录没写成（不影响安装）：%r" % (e,))
+
+
 def install(src):
     """从 zip / 文件夹装一个包（docs §5 那五步）。返回 `{"ok","message","name","rules"}`。
 
@@ -1309,6 +1334,7 @@ def install(src):
                 msg += "，已删掉装进去的文件"
             base.log("扩展：装 %s 失败（%s）" % (name, msg))
             return {"ok": False, "name": name, "rules": info["rules"], "message": msg}
+        _record_provenance(name, src, cap)
         base.log("扩展：装好了 %s（%s%s）"
                  % (name, "带工具 " + "、".join(t["name"] for t in cap.tools)
                     if cap.tools else "只有说明",

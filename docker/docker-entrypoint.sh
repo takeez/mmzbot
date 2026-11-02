@@ -36,4 +36,13 @@ PY
 fi
 
 cd /app
+
+# 降权：容器以 root 启动只是为了把数据卷的属主改对（老版本是 root 建的卷），
+# 之后一律以 mmzbot 跑。没有 setpriv 的极老环境就直接跑（保持能用优先）。
+if [ "$(id -u)" = "0" ] && id mmzbot >/dev/null 2>&1; then
+    chown -R mmzbot:mmzbot "$DATA" 2>/dev/null || true
+    if command -v setpriv >/dev/null 2>&1; then
+        exec setpriv --reuid mmzbot --regid mmzbot --init-groups python3 phone-bot-v2.py
+    fi
+fi
 exec python3 phone-bot-v2.py

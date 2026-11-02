@@ -25,7 +25,9 @@ RUN chmod +x /app/run.sh
 COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
-    && mkdir -p /data
+    && mkdir -p /data \
+    && useradd --system --uid 1000 --home /app --shell /usr/sbin/nologin mmzbot \
+    && chown -R mmzbot:mmzbot /app /data
 
 # 数据卷：config.json / local-config.json / memory.json / reminders.json /
 # settings.json / plan-*.json / bot.log / personality.md 全在 /data 里
