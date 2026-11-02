@@ -6867,7 +6867,9 @@ def run():
         _hist.reset()
         _hn = time.time()
         _HMSGS = [
-            {"message_id": 9001, "time": _hn - 3600,
+            # ⚠️ 别正好卡在 3600（"1小时前" 那条线）：跨秒/取整会让它一会儿算进、一会儿不算，
+            #    CI 上就这么偶发红过一次。往前挪 100 秒，离边界远一点。
+            {"message_id": 9001, "time": _hn - 3700,
              "sender": {"user_id": 10001, "card": "张三"}, "raw_message": "今天摸鱼了吗"},
             {"message_id": 9002, "time": _hn - 3000,
              "sender": {"user_id": 30003, "card": "小张"}, "raw_message": "摸了两小时"},
