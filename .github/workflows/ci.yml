@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  selftest:
+    name: 自检（${{ matrix.os }} / Python ${{ matrix.python }}）
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest
+      - name: 语法检查
+        run: python -m compileall -q phone-bot-v2.py fgbot capabilities examples tools deploy.py
+      - name: 自检（pytest：逐段用例）
+        run: python -m pytest -q
+      - name: 部署规则自检
+        run: python deploy.py --selfcheck
+
+  docker:
+    name: 镜像构建
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 构建镜像
+        run: docker build -f docker/Dockerfile -t mmzbot:ci .

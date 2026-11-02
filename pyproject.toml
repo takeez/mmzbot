@@ -1,0 +1,24 @@
+[project]
+name = "mmzbot"
+version = "0.1.0"
+description = "机魂小悦：可接 NapCat 的 QQ 机器人助手"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+    "onnxruntime>=1.16",
+    "tokenizers>=0.15",
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+exclude = ["tests/fixtures"]

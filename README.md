@@ -23,7 +23,7 @@
 - **群聊**：默认名称为“机魂小悦”；名称和可选唤醒词出现在消息开头时会唤醒回复。另支持话题触发词、被 @ 必答、引用回复和按条件接话；有发言频率控制、群内单条长度限制，不会无节制刷屏。
 - **私聊**：使用独立记忆和长度设置，适合连续对话。
 - **多人记忆**：按用户和群聊区分记忆，称呼可参考群名片或好友备注；群里的私事不会被随意带到其他会话。
-- **向量语义记忆**：使用 BGE-small-zh-v1.5 int8 将记忆编码为 512 维向量并按语义检索，是完整运行所必需的组件。模型采用 MIT 许可；实测内存约 78 MB，单线程每句约 37–41 ms，arm64 与 x86 输出逐位一致。模型从 [GitHub Release](https://github.com/takeez/miao-v2/releases/tag/model-bge-small-zh-v1.5) 获取，不放入 Git 仓库，由 `model_quantized.onnx`（168 KB）、`model_quantized.onnx_data`（23.8 MB）和 `tokenizer.json` 三个文件组成。
+- **向量语义记忆**：使用 BGE-small-zh-v1.5 int8 将记忆编码为 512 维向量并按语义检索，是完整运行所必需的组件。模型采用 MIT 许可；实测内存约 78 MB，单线程每句约 37–41 ms，arm64 与 x86 输出逐位一致。模型从 [GitHub Release](https://github.com/takeez/miao-models/releases/tag/model-bge-small-zh-v1.5) 获取，不放入 Git 仓库，由 `model_quantized.onnx`（168 KB）、`model_quantized.onnx_data`（23.8 MB）和 `tokenizer.json` 三个文件组成。
 - **多模态消息**：图片可作为推理材料；文件消息及引用中的文件可识别，并可按需下载供工具或扩展处理；表情和引用消息内容也能进入对话上下文。
 - **工具**：内置 13 项工具能力，涵盖时间、计划、唤醒、记忆、用户信息、历史、天气、网页搜索与阅读、发言和技能读取等。是否调用由模型结合场景判断。
 
@@ -72,7 +72,7 @@
 
 ## 反馈与贡献
 
-发现问题或希望讨论改进时，请通过 [GitHub Issues](https://github.com/takeez/miao-v2/issues) 提交复现步骤、运行环境和相关日志。发布日志前请删除 API Key、共享 token、QQ 号及其他个人信息。较大的功能改动建议先开 Issue 讨论。
+发现问题或希望讨论改进时，请通过 [GitHub Issues](https://github.com/takeez/mmzbot/issues) 提交复现步骤、运行环境和相关日志。发布日志前请删除 API Key、共享 token、QQ 号及其他个人信息。较大的功能改动建议先开 Issue 讨论。
 
 ## 自检
 
