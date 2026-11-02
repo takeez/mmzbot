@@ -8467,23 +8467,12 @@ def run():
                       _inst3["message"])
             # 装完加载器认不出来 → 回滚到备份（把加载器那一层打桩）
             _src3 = _cap_write(_cap_scratch, "pkgone", "坏掉的新版", body="坏版本标记")
-            _real_load = capabilities._load_dir
-
-            def _cap_broken_load(path, builtin=False, folder_name=None):
-                _cap = _real_load(path, builtin, folder_name)
-                if os.path.basename(os.path.abspath(path)) == "pkgone":
-                    _cap = _cap.clone()          # ⛔ 别改缓存里那个对象（会粘住）
-                    _cap.ok = False
-                    _cap.rules[0] = {"rule": 1, "ok": False, "warn": False,
-                                     "message": "自检：假装装完加载失败"}
-                    _cap.tools = []
-                return _cap
-
-            capabilities._load_dir = _cap_broken_load
+            _real_verify = capabilities._verify_load
+            capabilities._verify_load = lambda d: (False, "自检：假装装完加载失败")
             try:
                 _inst4 = capabilities.install(_src3)
             finally:
-                capabilities._load_dir = _real_load
+                capabilities._verify_load = _real_verify
             _restored = "新版本标记" in open(os.path.join(_inst_dir, "SKILL.md"),
                                           encoding="utf-8").read()
             ok &= _ck(not _inst4["ok"] and "回滚" in _inst4["message"] and _restored,
@@ -8753,24 +8742,13 @@ def run():
                                   tool=("pm_tool", "自检工具"))
             _pk_zip2 = _cap_zip(_pk_src2, os.path.join(_pk_tmp, "pkgpm2.zip"),
                                 outer="pkgpm")
-            _pk_real_load = capabilities._load_dir
-
-            def _pk_broken_load(path, builtin=False, folder_name=None):
-                _pk_c = _pk_real_load(path, builtin, folder_name)
-                if os.path.basename(os.path.abspath(path)) == "pkgpm":
-                    _pk_c = _pk_c.clone()
-                    _pk_c.ok = False
-                    _pk_c.rules[0] = {"rule": 1, "ok": False, "warn": False,
-                                      "message": "自检：假装装完加载失败"}
-                    _pk_c.tools = []
-                return _pk_c
-
-            capabilities._load_dir = _pk_broken_load
+            _pk_real_verify = capabilities._verify_load
+            capabilities._verify_load = lambda d: (False, "自检：假装装完加载失败")
             try:
                 _pk_roll = _pk_mod.run({"op": "install", "source": _pk_zip2,
                                         "confirm": True}, _pk_owner)
             finally:
-                capabilities._load_dir = _pk_real_load
+                capabilities._verify_load = _pk_real_verify
             _pk_back = open(os.path.join(_pk_dest, "SKILL.md"), encoding="utf-8").read()
             ok &= _ck(_pk_roll.get("ok") is False
                       and "回滚" in (_pk_roll.get("error") or "")

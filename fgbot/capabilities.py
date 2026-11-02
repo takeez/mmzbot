@@ -64,6 +64,7 @@ import sys
 import tempfile
 import threading
 import time
+import subprocess
 import types
 import urllib.error
 import urllib.parse
@@ -739,6 +740,9 @@ def _load_dir(path, builtin=False, folder_name=None):
     cap.version = _one_line(info["meta"].get("version"))
     cap.declared = builtins.list(info.get("declared") or [])
     cap.tools = builtins.list(info.get("tools") or [])
+    for _t in cap.tools:
+        if isinstance(_t, dict):
+            _t["_dir"] = path
     cap.body = info.get("body") or ""
     # ⚠️ 校验是静态的（不执行对方代码）；**真正加载**才 import —— 这是运行时，
     #    用户已经点过"装"了，行为要和以前一致（工具函数得是真函数）。
@@ -752,6 +756,9 @@ def _load_dir(path, builtin=False, folder_name=None):
                 # 校验用的是静态快照，里面的 run 只是个占位。
                 real_tools, _why = _tools_of(cap.mod)
                 if real_tools:
+                    for _t in real_tools:
+                        if isinstance(_t, dict):
+                            _t["_dir"] = path
                     cap.tools = real_tools
             except Exception as e:
                 cap.ok = False
@@ -1126,14 +1133,135 @@ def dispatch(name, args, ctx):
     return True, _run(hit, args, ctx)
 
 
+# ── 隔离运行（2026-11-02）──────────────────────────────────────────
+# 为什么：以前是 Thread + join(timeout) —— 超时只是"不等它了"，线程还在跑；
+# 包里 os._exit() / 段错误能直接带走主进程。现在：一个工具 = 一个子进程，
+# 超时就 kill（连子进程的子进程一起）。`MMZBOT_SELFTEST=1` 时仍走进程内，
+# 因为自检要打桩（打桩跨不了进程）。
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+RUNNER_TIMEOUT = 120.0
+
+
+def _in_selftest():
+    return os.environ.get("MMZBOT_SELFTEST") == "1"
+
+
+def _ctx_json(ctx):
+    """ctx 里能进 JSON 的留下，别的用字符串兜底（子进程只读，不改）。"""
+    out = {}
+    if not isinstance(ctx, dict):
+        return out
+    for k, v in ctx.items():
+        if isinstance(k, str) and k.startswith("_"):
+            continue
+        if v is None or isinstance(v, (bool, int, float, str)):
+            out[k] = v
+        elif isinstance(v, (list, tuple, dict)):
+            try:
+                json.dumps(v, ensure_ascii=False)
+                out[k] = v
+            except Exception:
+                out[k] = str(v)[:500]
+        else:
+            out[k] = str(v)[:200]
+    return out
+
+
+def _runner_env():
+    env = dict(os.environ)
+    env["PYTHONPATH"] = REPO_ROOT + (os.pathsep + env["PYTHONPATH"]
+                                     if env.get("PYTHONPATH") else "")
+    env["PYTHONIOENCODING"] = "utf-8"
+    env.setdefault("MMZBOT_DATA", base.DATA_DIR)
+    return env
+
+
+def _runner_argv(args):
+    return [sys.executable, "-X", "utf8", "-m", "fgbot.caprunner"] + [str(a) for a in args]
+
+
+def describe_isolated(pkg_dir, timeout=30.0):
+    """在子进程里读工具定义（不执行工具）。返回 (tool_dict, None) 或 (None, 原因)。"""
+    try:
+        p = subprocess.run(_runner_argv(["--dir", pkg_dir, "--describe"]),
+                           cwd=REPO_ROOT, env=_runner_env(), capture_output=True,
+                           text=True, encoding="utf-8", errors="replace",
+                           timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return None, "读取工具定义超时（包在 import 阶段卡住了）"
+    out = (p.stdout or "").strip().splitlines()
+    for line in reversed(out):
+        try:
+            d = json.loads(line)
+        except Exception:
+            continue
+        if d.get("ok"):
+            return d.get("tool") or {}, None
+        return None, "tool.py 加载失败：%s" % str(d.get("error") or "")[-300:]
+    return None, "runner 没有返回结果（退出码 %s）：%s" % (p.returncode,
+                                                        (p.stderr or "")[-300:])
+
+
+def run_isolated(pkg_dir, tool_name, args, ctx, timeout=None):
+    """在子进程里跑一次工具；超时 → kill 掉整个进程组并抛 TimeoutError。"""
+    timeout = float(timeout or RUNNER_TIMEOUT)
+    payload = json.dumps({"args": args if isinstance(args, dict) else {},
+                          "ctx": _ctx_json(ctx)}, ensure_ascii=False)
+    kw = {}
+    if os.name == "posix":
+        kw["start_new_session"] = True          # 方便整组 kill
+    p = subprocess.Popen(_runner_argv(["--dir", pkg_dir, "--tool", tool_name]),
+                         cwd=REPO_ROOT, env=_runner_env(),
+                         stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE, text=True,
+                         encoding="utf-8", errors="replace", **kw)
+    try:
+        out, err = p.communicate(payload, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        try:
+            if os.name == "posix":
+                os.killpg(os.getpgid(p.pid), 9)
+            else:
+                p.kill()
+        except Exception:
+            try:
+                p.kill()
+            except Exception:
+                pass
+        try:
+            p.communicate(timeout=5)
+        except Exception:
+            pass
+        raise TimeoutError("扩展包工具 %s 超过 %s 秒" % (tool_name, timeout))
+    for line in reversed((out or "").strip().splitlines()):
+        try:
+            d = json.loads(line)
+        except Exception:
+            continue
+        if d.get("ok"):
+            return d.get("result")
+        raise RuntimeError("扩展包工具 %s 出错：%s"
+                           % (tool_name, str(d.get("error") or "")[-400:]))
+    raise RuntimeError("扩展包工具 %s 没有返回结果（退出码 %s）：%s"
+                       % (tool_name, p.returncode, (err or "")[-300:]))
+
+
 def _run(tool, args, ctx):
     """在**有超时上限**的线程里跑它；异常原样抛给 `toolkit.call` 兜底。
 
     ⚠️ 超时抛 `TimeoutError`（`toolkit.call` 会把它变成既有的那句
        「这个工具出错了：TimeoutError」）—— 不新造给她看的句子。
     """
-    box = {}
     argv = args if isinstance(args, dict) else {}
+    pkg_dir = str(tool.get("_dir") or "")
+    if pkg_dir and not _in_selftest():
+        res = run_isolated(pkg_dir, tool["name"], argv, ctx,
+                           tool.get("timeout") or DEFAULT_TIMEOUT)
+        if isinstance(res, dict):
+            return res
+        return {"ok": True, "说明": "" if res is None else str(res)}
+    box = {}
 
     def work():
         try:
@@ -1254,23 +1382,32 @@ def _backup_name(dest):
     return p
 
 
-def _record_provenance(name, src, cap):
-    """把来源记在**包自己的目录里**（`.provenance.json`）。
+def _verify_load(dest):
+    """装完之后"能不能被加载"的判定（**在子进程里**加载，主进程不 import）。
 
-    ⚠ 为什么不放数据目录根下：那会多出一个状态文件，
-      而且卸载 / 回滚 / 自检都要额外照顾它。放在包里则随包一起来、一起走。
-    内容：来源路径、sha256、工具名、装的时间。写失败只记日志，不影响安装。
+    返回 (ok, 原因)。默认走 `describe_isolated`；自检会把它打桩成"假装认不出来"。
+    """
+    probe, why = describe_isolated(dest)
+    return (probe is not None), (why or "")
+
+
+def _record_provenance(src, dest, tools):
+    """把"这个包从哪来、内容指纹多少"记在**包自己的目录里**（`.provenance.json`）。
+
+    ⚠️ 不放在数据目录根下：那样会多出一个状态文件，卸载 / 回滚 / 自检都要额外照顾它。
+       放包里则随包一起来、一起走。
+    ⚠️ 这里**只写文件**，不 import 包、不跑包代码。
     """
     try:
         src_abs = os.path.abspath(str(src or ""))
-        sha = _sha256_path(src_abs) if os.path.isfile(src_abs) else _sha256_dir(cap.dir)
+        sha = _sha256_path(src_abs) if os.path.isfile(src_abs) else _sha256_dir(dest)
         rec = {
             "来源": src_abs,
             "sha256": sha,
-            "工具": [t["name"] for t in cap.tools],
+            "工具": [t["name"] for t in tools or []],
             "装的时间": time.strftime("%Y-%m-%d %H:%M:%S"),
         }
-        path = os.path.join(cap.dir, ".provenance.json")
+        path = os.path.join(dest, ".provenance.json")
         tmp = path + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
             f.write(json.dumps(rec, ensure_ascii=False, indent=2) + "\n")
@@ -1315,29 +1452,38 @@ def install(src):
             base.log("扩展：装 %s 之前先备份成 %s" % (name, os.path.basename(backup)))
         shutil.copytree(root, dest,
                         ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-        # ④ 跑一次加载器，确认它真的能被发现（失败 → 回滚）
-        with _LOCK:
-            _CACHE.pop(os.path.abspath(dest), None)
-        cap = None
-        for c in _ensure():
-            if c.name == name and os.path.normcase(c.dir) == os.path.normcase(os.path.abspath(dest)):
-                cap = c
-                break
-        if cap is None or not cap.ok:
-            msg = ("装完加载器认不出来" + ("（第 %d 条：%s）" % (cap.error_rule, cap.error_text)
-                                         if cap is not None and cap.error_rule else ""))
+        # ④ 确认它能被加载 —— **在子进程里加载**（不污染、也不让包代码进主进程）：
+        #    加载失败 / 卡住 → 回滚，和以前一样"装不上就退回去"。
+        #    ⚠️ 主进程自己**不 import**；第一次真正用到时才由 `_load_dir` import。
+        tools = builtins.list(info.get("tools") or [])
+        if tools:
+            _okload, _why = _verify_load(dest)
+            if not _okload:
+                msg = "装完加载器认不出来（%s）" % (_why or "")[:80]
+                shutil.rmtree(dest, ignore_errors=True)
+                if backup and os.path.isdir(backup):
+                    os.replace(backup, dest)
+                    msg += "，已回滚到备份"
+                else:
+                    msg += "，已删掉装进去的文件"
+                base.log("扩展：装 %s 失败（%s）" % (name, msg))
+                return {"ok": False, "name": name, "rules": info["rules"], "message": msg}
+        if info.get("declared") and not tools:
+            msg = "装完读不出工具定义，已回滚"
             shutil.rmtree(dest, ignore_errors=True)
             if backup and os.path.isdir(backup):
                 os.replace(backup, dest)
-                msg += "，已回滚到备份"
+                msg += "（回到备份）"
             else:
-                msg += "，已删掉装进去的文件"
+                msg += "（文件已删）"
             base.log("扩展：装 %s 失败（%s）" % (name, msg))
             return {"ok": False, "name": name, "rules": info["rules"], "message": msg}
-        _record_provenance(name, src, cap)
+        with _LOCK:
+            _CACHE.pop(os.path.abspath(dest), None)
+        _record_provenance(src, dest, tools)
         base.log("扩展：装好了 %s（%s%s）"
-                 % (name, "带工具 " + "、".join(t["name"] for t in cap.tools)
-                    if cap.tools else "只有说明",
+                 % (name, "带工具 " + "、".join(t["name"] for t in tools)
+                    if tools else "只有说明",
                     "，旧版本备份在 " + os.path.basename(backup) if backup else ""))
         return {"ok": True, "name": name, "rules": info["rules"],
                 "message": "装好了「%s」%s" % (name, "（旧版本备份成 %s）"
