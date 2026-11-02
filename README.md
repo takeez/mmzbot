@@ -47,44 +47,9 @@
 - “以后叫我小林”——记录你希望她使用的称呼。
 - “记住我喜欢喝美式”——将这条信息写入记忆库。
 
-## 部署方式
-
-支持以下四种环境，具体安装、配置、扫码登录、验收和排错步骤见对应文档：
-
-向量语义记忆是完整功能所必需的：安装 `requirements.txt` 中的三个 Python 依赖，并从 GitHub Release 下载模型文件。下载失败或缺文件时，程序可能仍能启动，但语义记忆检索不可用，安装未完成。模型文件不在 Git 仓库内；可用 `tools/fetch_model.py --base <镜像根地址>` 更换下载源。Docker 在镜像构建时安装依赖，模型仍需下载到数据卷。
-
-- [没有 Agent 帮助：给使用者看的安装说明](docs/install/human/README.md)
-- [有 Agent 帮助：给 Agent 执行的安装说明](docs/install/agent/README.md)
-
-两套安装文档都覆盖 Linux、Windows、Docker Compose 和 Android Termux + proot。选择与你的设备相符的一套，不要混用不同环境的步骤。
-
-基本要求：Python 3.11+、可用的模型服务和 API Key、QQ 账号及 NapCat。运行前必须安装 [`requirements.txt`](requirements.txt) 中的 `onnxruntime`、`tokenizers`、`numpy`，并从 GitHub Release 下载语义记忆模型；Docker 镜像在构建时安装 Python 依赖。模型未下载或依赖未安装时，程序仍可能启动，但语义记忆检索不可用，安装不算完成。详见各环境安装指南。
-
-> **网络安全：** 不要将 NapCat 的 API 或 WebUI 端口直接暴露到公网。公网部署面板时，请按[反向代理说明](docs/reverse-proxy.md)配置访问保护。
-
-## 数据与隐私
-
-对话消息和提供给模型推理的上下文（包括需要处理的图片内容）会发送到你配置的模型服务；使用文件工具或扩展时，相关处理结果也可能进入模型请求。数据由所选服务按其自身隐私政策处理。机魂小悦的配置、记忆、人设和日志保存在运行数据目录；目录位置优先由 `MMZBOT_DATA` 指定，其次读取 `local-config.json` 中的 `dataDir`，再使用平台默认值。请保护该目录及备份，并避免在公开仓库或日志中泄露 API Key、共享 token 和个人数据。
-
-## 配置与管理
-
-支持通过命令行初始化和检查配置、设置配置项、查询模型服务可用模型；配置也可以通过 Web 面板管理。面板包含总览、申请、记忆、目标群、用户、扩展和设置等页面。具体命令和部署配置请按上面的安装文档操作。
-
-## 反馈与贡献
-
-发现问题或希望讨论改进时，请通过 [GitHub Issues](https://github.com/takeez/mmzbot/issues) 提交复现步骤、运行环境和相关日志。发布日志前请删除 API Key、共享 token、QQ 号及其他个人信息。较大的功能改动建议先开 Issue 讨论。
-
-## 自检
-
-项目自带离线自检（1100 条以上断言，具体数量以运行结果为准）。自检可能读取配置与人设文件；运行前请按安装文档确认数据目录，避免让 `MMZBOT_DATA` 指向真实运行数据。
-
 ## 设计参考
 
 运行时循环、工具调用协议和请求组织方式参考了 [DeepSeek Harness（DSH）](https://www.deepseek.com/en/harness/)；Agent 的产品形态和工具组织参考了 [pi agent（pi-mono）](https://github.com/badlogic/pi-mono)。其余部分围绕 QQ 场景构建，包括群聊判断、知识锁、扩展包和管理面板。
-
-## 安全与更新
-
-遇到安全问题请按 [安全说明](SECURITY.md) 的渠道报告；版本改动见 [更新日志](CHANGELOG.md)。
 
 ## 许可证
 
