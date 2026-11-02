@@ -22,6 +22,23 @@ from .cli import (cli_cap_check, cli_cap_install, cli_cap_list, cli_cap_remove,
 
 # 自检分段账本（供 pytest 拆成逐段用例；不影响断言本身）
 _CUR_SECT = ["未分段"]
+def _note_section(name):
+    """把"现在跑到哪一段"写进进度文件（给 pytest 用）。
+
+    为什么要它：自检是一个大函数，中间某一段抛异常就整份停下。
+    有了这个进度文件，pytest 就能把"哪一段崩的、后面哪几段没跑"
+    分别报出来，而不是整份只剩一个 rc。没设环境变量就什么都不写。
+    """
+    path = os.environ.get("MMZBOT_SELFTEST_PROGRESS")
+    if not path:
+        return
+    try:
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(json.dumps({"section": name}, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+
+
 _SECT_ROWS = []
 
 
@@ -128,6 +145,7 @@ def run():
 
     print()
     _CUR_SECT[0] = "0. 时区（不依赖 tzdata）"
+    _note_section("0. 时区（不依赖 tzdata）")
     print("=== 0. 时区（不依赖 tzdata）===")
     _tz_ok, _tz_what, _tz_detail = base.tz_selfcheck()
     ok &= _ck(_tz_ok, _tz_what, _tz_detail)
@@ -144,6 +162,7 @@ def run():
     print("  %s" % base.tz_info())
 
     _CUR_SECT[0] = "1. 配置"
+    _note_section("1. 配置")
     print("=== 1. 配置 ===")
     print("  port = %s ｜ NapCat 上报 token %s ｜ 群 %s ｜ NapCat %s"
           % (c.get("port"), "有" if base.napcat_token() else "**没有**",
@@ -172,6 +191,7 @@ def run():
 
     print()
     _CUR_SECT[0] = "2. 读 NapCat 上报（含那两个坑）"
+    _note_section("2. 读 NapCat 上报（含那两个坑）")
     print("=== 2. 读 NapCat 上报（含那两个坑）===")
     from fgbot import napcat
     evt = {
@@ -206,6 +226,7 @@ def run():
 
     print()
     _CUR_SECT[0] = "3. 出站那套（im.py）在不在"
+    _note_section("3. 出站那套（im.py）在不在")
     print("=== 3. 出站那套（im.py）在不在 ===")
     from fgbot import im
     for fn in ("send_group", "send_private", "poke", "napcat_alive"):
@@ -213,6 +234,7 @@ def run():
 
     print()
     _CUR_SECT[0] = "4. 重启请求（面板/App 按「重启她」）"
+    _note_section("4. 重启请求（面板/App 按「重启她」）")
     print("=== 4. 重启请求（面板/App 按「重启她」）===")
     real = base.RESTART_PATH
     base.RESTART_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_selftest_restart.txt")
@@ -233,6 +255,7 @@ def run():
 
     print()
     _CUR_SECT[0] = "5. 她（agent 层）"
+    _note_section("5. 她（agent 层）")
     print("=== 5. 她（agent 层）===")
     import base64
     import json
@@ -762,6 +785,7 @@ def run():
         # ── 端到端：假模型 + 假图，离线跑一整轮 handle
         print()
         _CUR_SECT[0] = "6. 端到端（假模型、假图，离线）"
+        _note_section("6. 端到端（假模型、假图，离线）")
         print("=== 6. 端到端（假模型、假图，离线）===")
         seen = {}
         png = _fake_png()
@@ -885,6 +909,7 @@ def run():
         #    全程打桩，不联网。
         print()
         _CUR_SECT[0] = "6b. 引用（回复）里的图（打桩、离线）"
+        _note_section("6b. 引用（回复）里的图（打桩、离线）")
         print("=== 6b. 引用（回复）里的图（打桩、离线）===")
         QRAW = ("看看这张[CQ:image,file=QUOTED.png,sub_type=0,"
                 "url=https://gchat.qpic.cn/download?appid=1407&amp;rkey=quote]")
@@ -1218,6 +1243,7 @@ def run():
             # ═══ ①~⑥ 唤醒「当时」的现场：那场对话的下一轮（第 43 / 44 条）═══
             print()
             _CUR_SECT[0] = "4.x 唤醒「当时」的现场（第 43 / 44 条）"
+            _note_section("4.x 唤醒「当时」的现场（第 43 / 44 条）")
             print("=== 4.x 唤醒「当时」的现场（第 43 / 44 条）===")
             _wk = ("g", 515151)
             memory.reset([_wk])
@@ -2531,6 +2557,7 @@ def run():
         #    ⚠️ 全程离线：唯一会碰网络的现取昵称那一步，这里记忆里都已经有昵称了。
         print()
         _CUR_SECT[0] = "6.y2 本轮批准的那批（改名 / user_info / 显示规则 / 电脑名清理）"
+        _note_section("6.y2 本轮批准的那批（改名 / user_info / 显示规则 / 电脑名清理）")
         print("=== 6.y2 本轮批准的那批（改名 / user_info / 显示规则 / 电脑名清理）===")
         import inspect
 
@@ -4690,6 +4717,7 @@ def run():
         # ══════════════════════════════════════════════════════════════
         print()
         _CUR_SECT[0] = "6.6 语义召回"
+        _note_section("6.6 语义召回")
         print("=== 6.6 语义召回 ===")
         import re
         from fgbot import embed, semantic, vecstore, recall as recall_mod
@@ -4936,6 +4964,7 @@ def run():
         #       不睡固定秒数 —— 睡固定秒数的断言换台机器/换次负载就可能翻脸。
         print()
         _CUR_SECT[0] = "6c. 超时之后迟到的回复（打桩、离线）"
+        _note_section("6c. 超时之后迟到的回复（打桩、离线）")
         print("=== 6c. 超时之后迟到的回复（打桩、离线）===")
         print("  先验一件更要紧的事：自检里发生的「收到一条消息」**绝不会真的发出去**")
         _sent = []
@@ -5092,6 +5121,7 @@ def run():
         #    ⚠️ 除了"节奏"那一条，其余各段把间隔临时设成 0 —— 免得自检白等好几秒。
         print()
         _CUR_SECT[0] = "6e. 太长就自动拆成几条依次发（打桩、离线）"
+        _note_section("6e. 太长就自动拆成几条依次发（打桩、离线）")
         print("=== 6e. 太长就自动拆成几条依次发（打桩、离线）===")
         from fgbot import chunker as _chk
         _real_post_e = im._napcat_post
@@ -5377,6 +5407,7 @@ def run():
         #    再验新加的**总时长（wall-clock）看门狗**掐得断。
         print()
         _CUR_SECT[0] = "6d. 总时长看门狗 + 空响应证据 + 测试当前这家（打桩、离线）"
+        _note_section("6d. 总时长看门狗 + 空响应证据 + 测试当前这家（打桩、离线）")
         print("=== 6d. 总时长看门狗 + 空响应证据 + 测试当前这家（打桩、离线）===")
         import socket as _socket
         import http.client as _httpc
@@ -5535,6 +5566,7 @@ def run():
         # ══════════════════════════════════════════════════════════════
         print()
         _CUR_SECT[0] = "6.9 群管理（namesake：groups.json ∪ config.json ∪ 用户表）"
+        _note_section("6.9 群管理（namesake：groups.json ∪ config.json ∪ 用户表）")
         print("=== 6.9 群管理（namesake：groups.json ∪ config.json ∪ 用户表）===")
         from fgbot import groups as _g
 
@@ -5796,6 +5828,7 @@ def run():
         # ══════════════════════════════════════════════════════════════
         print()
         _CUR_SECT[0] = "6.95 申请队列：好友申请 + 群邀请（打桩、离线）"
+        _note_section("6.95 申请队列：好友申请 + 群邀请（打桩、离线）")
         print("=== 6.95 申请队列：好友申请 + 群邀请（打桩、离线）===")
 
         from fgbot import reqs as _rq
@@ -6196,6 +6229,7 @@ def run():
         # ══════════════════════════════════════════════════════════════
         print()
         _CUR_SECT[0] = "6.10 消息装配：战况第 2 次不带历史 / 播报不带历史（打桩、离线）"
+        _note_section("6.10 消息装配：战况第 2 次不带历史 / 播报不带历史（打桩、离线）")
         print("=== 6.10 消息装配：战况第 2 次不带历史 / 播报不带历史（打桩、离线）===")
 
         _MS_GID, _MS_QQ = 888777666, 10001
@@ -6453,6 +6487,7 @@ def run():
         # ══════════════════════════════════════════════════════════════
         print()
         _CUR_SECT[0] = "6.11 max_tokens 续写（撞 length 不结束；打桩、离线）"
+        _note_section("6.11 max_tokens 续写（撞 length 不结束；打桩、离线）")
         print("=== 6.11 max_tokens 续写（撞 length 不结束；打桩、离线）===")
 
         _CW_MARK = "（自检：max_tokens 续写）"
@@ -6604,6 +6639,7 @@ def run():
         #      下标已移位，会把「快照 + 当前那句」也删掉（配对仍合法、不报错、静默变傻）。
         print()
         _CUR_SECT[0] = "6.10b 连续两次 pc_status 的剪枝（离线）"
+        _note_section("6.10b 连续两次 pc_status 的剪枝（离线）")
         print("=== 6.10b 连续两次 pc_status 的剪枝（离线）===")
         _tb = [{"role": "system", "content": "S"},
                {"role": "user", "content": "历史甲"},
@@ -6631,6 +6667,7 @@ def run():
         #    plan / memory-keeper / B1 私聊字数窗口 / B2 截断明说 / B3 自动压缩。
         print()
         _CUR_SECT[0] = "6.z agent 升级（第 5~13 步）"
+        _note_section("6.z agent 升级（第 5~13 步）")
         print("=== 6.z agent 升级（第 5~13 步）===")
         from fgbot import history as _hist
         from fgbot import keeper as _keeper
@@ -6758,6 +6795,7 @@ def run():
         # ═══ 6.z2 四条定稿（persona 两行 / A6 三个安全阀 / 两句话术）═══
         print()
         _CUR_SECT[0] = "6.z2 四条定稿（persona / A6 安全阀 / 话术）"
+        _note_section("6.z2 四条定稿（persona / A6 安全阀 / 话术）")
         print("=== 6.z2 四条定稿（persona / A6 安全阀 / 话术）===")
         # ⚠️ ：TEMPLATE **整段**是 ——
         #    删了全局「不想说话就只回某个哨兵词」、`你对他的【称呼】` 的方括号照抄。
@@ -7073,6 +7111,7 @@ def run():
         # ══════════════════════════════════════════════════════════════
         print()
         _CUR_SECT[0] = "6.z3 end_turn 收尾工具（条件出现；打桩、离线）"
+        _note_section("6.z3 end_turn 收尾工具（条件出现；打桩、离线）")
         print("=== 6.z3 end_turn 收尾工具（条件出现；打桩、离线）===")
 
         # ⚠️ 工具目录现在有**两条条件出现的**（pc_status / end_turn）。
@@ -7315,6 +7354,7 @@ def run():
         # ══════════════════════════════════════════════════════════════
         print()
         _CUR_SECT[0] = "6.12 运行参数注册表 + 面板设置（离线）"
+        _note_section("6.12 运行参数注册表 + 面板设置（离线）")
         print("=== 6.12 运行参数注册表 + 面板设置（离线）===")
         import urllib.request as _urq_s
 
@@ -7612,6 +7652,7 @@ def run():
         # ══════════════════════════════════════════════════════════════
         print()
         _CUR_SECT[0] = "6.13 提供商 / 模型目录 / 后台模型（离线）"
+        _note_section("6.13 提供商 / 模型目录 / 后台模型（离线）")
         print("=== 6.13 提供商 / 模型目录 / 后台模型（离线）===")
         import urllib.request as _urq_p
         _bd = tempfile.mkdtemp(prefix="brain-", dir=tmp)
@@ -7845,6 +7886,7 @@ def run():
         # ══════════════════════════════════════════════════════════════
         print()
         _CUR_SECT[0] = "6.14 设置页（onboarding.save / probe / groups / persona）"
+        _note_section("6.14 设置页（onboarding.save / probe / groups / persona）")
         print("=== 6.14 设置页（onboarding.save / probe / groups / persona）===")
         from fgbot import onboard as _ob
         from fgbot import groups as _og
@@ -8186,6 +8228,7 @@ def run():
         # ══════════════════════════════════════════════════════════════
         print()
         _CUR_SECT[0] = "6.16 扩展包（知识锁 / 六条校验 / 安装 / 回滚 / 停用）"
+        _note_section("6.16 扩展包（知识锁 / 六条校验 / 安装 / 回滚 / 停用）")
         print("=== 6.16 扩展包（知识锁 / 六条校验 / 安装 / 回滚 / 停用）===")
         import base64 as _cap64
         import zipfile as _capzip
@@ -8625,6 +8668,7 @@ def run():
         # ══════════════════════════════════════════════════════════════
         print()
         _CUR_SECT[0] = "6.17 package 工具 / 文件入站 / 示例包 / 模板"
+        _note_section("6.17 package 工具 / 文件入站 / 示例包 / 模板")
         print("=== 6.17 package 工具 / 文件入站 / 示例包 / 模板 ===")
         import importlib.util as _pk_iu
         import urllib.error as _pk_ue
@@ -9065,6 +9109,7 @@ def run():
     # ══════════════════════════════════════════════════════════════
     print()
     _CUR_SECT[0] = "6.15 数据目录可配 / deploy --dry"
+    _note_section("6.15 数据目录可配 / deploy --dry")
     print("=== 6.15 数据目录可配 / deploy --dry ===")
     import subprocess as _sp
     _dd = tempfile.mkdtemp(prefix="fg-datadir-")
@@ -9166,6 +9211,7 @@ def run():
 
     print()
     _CUR_SECT[0] = "7. 自检有没有副作用"
+    _note_section("7. 自检有没有副作用")
     print("=== 7. 自检有没有副作用 ===")
     after = _snapshot(base.DIR)
     new = sorted(set(after) - set(before))
