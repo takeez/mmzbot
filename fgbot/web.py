@@ -24,6 +24,8 @@
 """
 
 import html
+import ipaddress
+import socket
 import json
 import os
 import re
@@ -99,7 +101,7 @@ def _post_json(url, payload, key, timeout):
         req.add_header(k, v)
     req.add_header("User-Agent", UA)
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with _OPENER.open(req, timeout=timeout) as r:
             return r.status, r.read(MAX_PAGE)
     except urllib.error.HTTPError as e:
         # 401/403/429… 连响应体也要读出来（但**不能让她看到**）
@@ -158,7 +160,64 @@ def _qianfan(q, key):
     return out
 
 
+# ── ① SSRF 闸（2026-11-02）────────────────────────────────────────────
+# 为什么：`read_url` 把用户给的地址直接交给 urllib，而 urllib **默认跟 30x 跳转**。
+# 不挡的话，一句提示注入就能让它读 169.254.169.254（云主机凭证）、
+# 127.0.0.1:3000（NapCat WebUI）或内网任意地址。
+# 判定只认真正的内网段（RFC1918 / 回环 / 链路本地 / 未指定 / 组播 / IPv6 ULA）；
+# ⚠️ 不用 `ip.is_private` 一刀切 —— 开了代理的机器会把公网域名解析到 198.18.0.0/15，
+#    那个段也标成 private，一刀切会把正常公网访问全挡掉。
+_BLOCK_NETS4 = tuple(ipaddress.ip_network(n) for n in (
+    "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "100.64.0.0/10"))
+_BLOCK_NETS6 = (ipaddress.ip_network("fc00::/7"),)
+
+
+def _blocked_ip(ip):
+    if ip.is_loopback or ip.is_link_local or ip.is_multicast or ip.is_unspecified:
+        return True
+    if isinstance(ip, ipaddress.IPv4Address):
+        return any(ip in n for n in _BLOCK_NETS4)
+    return any(ip in n for n in _BLOCK_NETS6)
+
+
+def _assert_public_url(url):
+    u = (url or "").strip()
+    p = urllib.parse.urlsplit(u)
+    if p.scheme not in ("http", "https"):
+        raise ValueError("只认 http/https")
+    host = p.hostname
+    if not host:
+        raise ValueError("没有主机名")
+    port = p.port or (443 if p.scheme == "https" else 80)
+    try:
+        infos = socket.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)
+    except Exception as e:
+        raise ValueError("地址解析不了（%r）" % (e,))
+    if not infos:
+        raise ValueError("地址解析不了")
+    for info in infos:
+        try:
+            ip = ipaddress.ip_address(info[4][0])
+        except Exception:
+            continue
+        if _blocked_ip(ip):
+            raise ValueError("这个地址不让读（本机 / 内网）")
+    return u
+
+
+class _SafeRedirect(urllib.request.HTTPRedirectHandler):
+    """跳转逐跳验一遍（不验的话，公网地址 302 到 127.0.0.1 就绕过去了）。"""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        _assert_public_url(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+_OPENER = urllib.request.build_opener(_SafeRedirect)
+
+
 def _open(url, data=None, timeout=TIMEOUT, limit=MAX_PAGE, ua=None):
+    _assert_public_url(url)
     req = urllib.request.Request(im.encode_url(url), data=data)
     req.add_header("User-Agent", ua or UA)
     req.add_header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.6")

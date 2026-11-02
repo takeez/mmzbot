@@ -1,7 +1,7 @@
 <!--
 这个文件是给你（人）改的备注，她一个字都看不到。
 下面那段正文才是"她是谁、怎么说话"，改完存盘就行，不用重启 ——
-电脑上改完跑 python tools/phone-bot/deploy.py --content-only，下一句话就生效，
+电脑上改完跑 python deploy.py --content-only，下一句话就生效，
 对话记忆也不会断，她不会"失忆"。
 
 写法上只有三点要注意：

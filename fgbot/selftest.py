@@ -1460,7 +1460,7 @@ def run():
                       "播报：就算电脑传了 mention 也不 @ 人")
 
             # ⚠️ 2026-10-03（第三批）：电脑的播报载荷**顶层**多了一个 `UTC偏移`（`±HH:mm`、
-            #    **不进 `facts`**，见 `规格-多电脑接入.md` §4.1 与 `答复-第三批.md` §6.1）。
+            #    **不进 `facts`**，见 `规格-多电脑接入.md` §4.1 与 `历史讨论.md` §6.1）。
             #    这里钉死"多这一个键**一个字都不进材料**"：同一份 facts 跑两遍（带 / 不带），
             #    把发给模型的**最后那条 user 指令**（= 抬头 + 记录 + 指令）抓出来逐字比。
             #    ⚠️ 只比那一条 —— 历史（memory.render）每一轮本来就会变，那不是材料。
@@ -1516,7 +1516,7 @@ def run():
                       json.dumps(sent[-1][1], ensure_ascii=False)[:60] if sent else "没发出去")
 
             # ── ⑤ 材料里"谁在摸鱼"那个**值**：走 `who.display_name`（备注 → 称呼 → 昵称 → QQ）──
-            #    用户 2026-10-04 拍板：只换"值从哪来"，⛔ 模板/字段名一个字不动。
+            #    2026-10-04 拍板：只换"值从哪来"，⛔ 模板/字段名一个字不动。
             #    ⚠️ 必须待在这个 `_napcat_post` 假桩里（出了这一节就是真往 QQ 发）。
             _o5, _m5, _r5 = users.add("", "10005", "", "⑤ 自检用")
             ok &= _ck(_o5, "⑤ 播报「谁」：先发一条**没备注**的记录（自检用）", _m5)
@@ -1540,7 +1540,7 @@ def run():
                   "播报：没给收件人会被拒（不乱发）")
 
         # ── 战况（pc_status）：**所有人（包括主人）一律走电脑发来的心跳缓存** ──
-        #    用户 2026-10-05 拍板：「我的实时就不用了，真的做到所有人都一样」——
+        #    2026-10-05 拍板：「我的实时就不用了，真的做到所有人都一样」——
         #    于是「空 who = 主人那台 + 局域网直连（实时）」那整条路**没有任何入口**了。
         #    ⛔ 这一段全程离线，而且把直连那两个函数换成**一调就炸**的桩：
         #       任何一条 pc_status 路径只要还碰它们，自检当场就红（也顺便钉住"自检不联网"）。
@@ -1599,7 +1599,7 @@ def run():
                       "战况③：`_pc_forward()`（局域网直连）在全文件里**一个调用点都没有**"
                       "（它本人留着不删，但没有任何入口）", "调用点 %d 个" % len(_fwd_calls))
 
-            # ⑦ desc / params 是用户逐字批过的两句 —— 冻在这儿，谁改谁红（机检）
+            # ⑦ desc / params 是定稿的两句 —— 冻在这儿，谁改谁红（机检）
             #    ⚠️ 搬进扩展包后形状从"元组"变成了标准 JSON Schema；**文字一个字没动**。
             _pc_tool = _pc_cap.tools[0]
             _pc_desc_want = "查电脑上今天干了多少活、现在在忙什么"
@@ -1680,10 +1680,10 @@ def run():
             ok &= _ck(_pc_rn2.get("ok") is False and _pc_rn2.get("电脑不在线") is True
                       and _pc_rn2.get("error")
                       == "电脑没开机（或者换了地址、连不上）—— 这会儿拿不到它的数据",
-                      "战况：**有记录、没心跳** → 原来那句（用户 2026-10-03 定的）",
+                      "战况：**有记录、没心跳** → 原来那句（2026-10-03 定的）",
                       json.dumps(_pc_rn2, ensure_ascii=False))
 
-            # 说话人**没登记过** → 用户 2026-10-05 逐字定稿的那一句（只有这一档用它）
+            # 说话人**没登记过** → 2026-10-05 逐字定稿的那一句（只有这一档用它）
             _pc_rg = toolkit.call("pc_status", {}, mk("状态", uid=_PC_STRANGER_QQ))
             ok &= _ck(_pc_rg.get("ok") is False
                       and _pc_rg.get("error") == "问话的这个人还没登记过电脑 —— 拿不到数据"
@@ -1712,7 +1712,7 @@ def run():
 
         # ── 第三批：电脑的心跳（`status.push`）→ status-cache.json → 战况的备用材料 ──
         #    契约 = PCStatus《给手机那边的规格-多电脑接入.md》§4.1「⭐ 出站心跳 status.push」。
-        #    这里钉的是用户 2026-10-03 拍板的那几件：接住（**200、不是 501**）、
+        #    这里钉的是2026-10-03 拍板的那几件：接住（**200、不是 501**）、
         #    落盘（含收到时间 + 上报时段 + 机器可读 时段）、
         #    直连优先、以及那几句**逐字不许动**的材料。
         #    ⭐ 2026-10-09：过期判定改成**只看日期**（`computer_day()`）—— 这一段跟着改。
@@ -1863,7 +1863,7 @@ def run():
                       "战况：**他自己那条**新鲜 → 用缓存答 + 一个 `数据时间`",
                       json.dumps(_cb, ensure_ascii=False))
 
-            # ⭐ 当天 + 超 90 分钟：**照旧给数据**（"当天的战况永不过期"，用户 2026-10-09 拍板）
+            # ⭐ 当天 + 超 90 分钟：**照旧给数据**（"当天的战况永不过期"，2026-10-09 拍板）
             statuscache.record(_HB_ALL, _cc_id, now=time.time() - 91 * 60)
             _st2 = toolkit.call("pc_status", {}, c2)
             ok &= _ck(_st2.get("ok") is True and _st2.get("专注") == "2 小时 5 分"
@@ -1919,7 +1919,7 @@ def run():
         #       正式路径再也不走它；老那条 90 分钟的线（`STALE_SECONDS` / `fresh()`）照旧留着。
         #    全程离线打桩：只递条目进 `material()` / 只碰临时目录，不联网、不发消息。
         print()
-        print("    ── ⭐ 当天的战况永不过期（用户 2026-10-09 拍板）──")
+        print("    ── ⭐ 当天的战况永不过期（2026-10-09 拍板）──")
         ok &= _ck(statuscache.computer_day(_HB, now=_MON) == "09-28",
                   "当天①：「他那台今天」= 载荷里 `日期` 的写法（北京 +08:00 / 切换点 04:00）",
                   "算出来 = %s" % statuscache.computer_day(_HB, now=_MON))
@@ -2143,7 +2143,7 @@ def run():
         store.remove(statuscache.CACHE_NAME)
 
         # ═══ 6.x 身份 = QQ：称呼 / **本群**名片 / 昵称都只是别名 ════════════════════
-        #    用户 2026-10-04 拍板「身份 = QQ」，2026-10-06 又定了两条：
+        #    2026-10-04 拍板「身份 = QQ」，2026-10-06 又定了两条：
         #      · **备注（面板备注 `名字` / 私有备注 `备注`）完全不参与认人**（只用于面板显示）；
         #      · **群名片按群存**（`memory.json[qq].cards[群号]`），认人只看**当前群**那张；
         #        老的单字段 `card` 从这天起只当**历史残留**（认人/显示都不许读）。
@@ -2176,7 +2176,7 @@ def run():
         ok &= _ck(all(q == _WQ1 and (r or {}).get("id") == _w1["id"] for q, r in _q1),
                   "① `who.qq()`（工具认人那条路）这几种写法也认，拿到的 QQ 号也对",
                   "、".join("%s→%s" % (q, (r or {}).get("id")) for q, r in _q1))
-        # ⛔ 用户 2026-10-06 拍板：**面板备注 / 私有备注完全不参与匹配**（只用于面板显示）
+        # ⛔ 2026-10-06 拍板：**面板备注 / 私有备注完全不参与匹配**（只用于面板显示）
         ok &= _ck(_who.resolve("张三备注") is None and _who.resolve("记事一") is None
                   and _who.qq("张三备注")[0] == "" and _who.qq("记事一")[0] == "",
                   "① 备注类（面板备注 `名字` / 私有备注 `备注`）**完全不参与认人**",
@@ -2334,7 +2334,7 @@ def run():
                   "⑧ 老数据（`名字` 里已经有值）照旧当**备注**显示：显示名 = 阿强",
                   "%s ｜ %s" % (_wm8, _who.display_name(_w8)))
         ok &= _ck(_who.resolve("阿强") is None,
-                  "⑧ 但它**不再参与认人** —— 认不出来（用户 2026-10-06 拍板：备注只用于显示）")
+                  "⑧ 但它**不再参与认人** —— 认不出来（2026-10-06 拍板：备注只用于显示）")
         ok &= _ck(users.update(_w8["id"], name="")[0]
                   and _who.display_name(users.by_id(_w8["id"])) == _WQ_LEGACY,
                   "⑧ 备注**清空**也允许（老记录不会因为这个动作坏掉）")
@@ -2347,16 +2347,16 @@ def run():
         for _r in (_w1, _w2, _w3, _w8):
             users.remove(_r["id"])
 
-        # ═══ 6.y 本群名片 / 重名不猜（用户 2026-10-06 拍板，只做"不进 LLM 文本"的那一半）═══
+        # ═══ 6.y 本群名片 / 重名不猜（2026-10-06 拍板，只做"不进 LLM 文本"的那一半）═══
         #    ① A 群有名片、B 群没有 → 在 A 群按那张名片认得到、在 B 群认不到（**核心回归**）
         #    ② 私聊里**永远**不用任何群名片
         #    ③ 称呼 > 本群名片 > 昵称
         #    ④ 备注（面板备注 / 私有备注）**完全不参与匹配**
         #    ⑤ 同一个 QQ 两条记录（两台电脑）**照旧不算重名**（`pc_status` 也不变）
-        #    ⑥ 两个不同 QQ 命中同一档 → **不猜**，回用户逐字定稿那句
+        #    ⑥ 两个不同 QQ 命中同一档 → **不猜**，回定稿那句
         #    ⑦ 历史残留的单字段 `card`：**任何**显示/认人路径都不读
         #    ⑧ `say` 的弱路现在也认得**昵称 / 本群名片**
-        #    ⑨ "九处 `who` 说明"里不再列举"这名字是哪一类"（用户 2026-10-06 改的话术）
+        #    ⑨ "九处 `who` 说明"里不再列举"这名字是哪一类"（2026-10-06 改的话术）
         _YQ1, _YQ2, _YQ3, _YQ4 = "3300000033", "3400000044", "3500000055", "3600000066"
         _GA, _GB2 = "888000111", "888000222"     # 自检里造的两个群（不是真群号）
         _ya = _yb = _yc = _yd = None
@@ -2437,7 +2437,7 @@ def run():
                       "⑤ `pc_status` 的多台电脑行为不变（专注相加、`数据时间` 取心跳最新那条）",
                       json.dumps(_p5, ensure_ascii=False))
 
-            # ── ⑥ 两个不同 QQ 命中同一档 → 不猜，回**用户逐字定稿**那句 ──
+            # ── ⑥ 两个不同 QQ 命中同一档 → 不猜，回**定稿**那句 ──
             memory.remember_name(_YQ2, "重名词")
             memory.remember_name(_YQ3, "重名词")
             _i6 = _who.identify("重名词", _cA)
@@ -2549,7 +2549,7 @@ def run():
                   "A4/B5 参数：`who` / `ask` / `text`（⛔ 没有 action、没有 old/new）",
                   str(list(_tmap["memory"]["params"].keys())))
         ok &= _ck(_tmap["memory"]["desc"] == "查或记某个人的记忆（住哪、性别、生日、口味、身份、喜好等）",
-                  "B5 `memory` 的说明**逐字**（新字清单第 1 条）",
+                  "B5 `memory` 的说明**逐字**（定稿）",
                   _tmap["memory"]["desc"])
         ok &= _ck(_tmap["memory"]["params"]["who"][1] == "【消息前缀】或「自己」；留空=当前说话的人",
                   "B5 `who` 的说明**逐字**", _tmap["memory"]["params"]["who"][1])
@@ -2582,7 +2582,7 @@ def run():
                   and len(toolkit.names()) == 13,
                   "B5 常态工具目录 = 13 个（12 个内置 + skill；pc_status 要先读技能才解锁）",
                   "、".join(toolkit.names()))
-        # ── B5 新 / 合并工具的说明（逐字，新字清单第 4/5/9/10 条）──
+        # ── B5 新 / 合并工具的说明（定稿）──
         ok &= _ck(_tmap["callname"]["desc"]
                   == "给某个人定【称呼】",
                   "B5 `callname` 说明**逐字**", _tmap["callname"]["desc"][:30])
@@ -2871,7 +2871,7 @@ def run():
         memory.forget_person(_UQQ)
         memory.forget_person(_UQQ2)
 
-        # ═══ 6.z 同一个人多台电脑 → 战报**拼成一份**（用户 2026-10-05 拍板 1(a)+2(a)+3(a)）═══
+        # ═══ 6.z 同一个人多台电脑 → 战报**拼成一份**（2026-10-05 拍板 1(a)+2(a)+3(a)）═══
         #    规则（只看"今天有数据"、相加、来源按名相加降序、`现在`/`数据时间` 取心跳最新那条）
         #    与解析/格式化都在 `fgbot/merge.py`（**纯函数**）；"去哪几条缓存里找那个人另外几台"
         #    在 `statuscache.merge_person`。全程**离线打桩**：users.json / status-cache.json
@@ -3119,7 +3119,7 @@ def run():
         #      新签名 / 重放保护 / 用户表（发码·撤销）/ 门禁 / 429 限流 / 面板不带 token
         #
         # 契约：`规格-多电脑接入.md` §3/§5/§6 + `给PCStatus的答复.md` B1~B6・C1~C5・D2
-        #       + `PCStatus\给手机那边的答复-第三批.md` §11/§12。
+        #       + 历史讨论 §11/§12。
         # 全部**离线打桩、不联网**：真的起一个 127.0.0.1 的 HTTP 服务，但只打它自己；
         # `users.json` 与 `local-config.json` 都指到临时目录（正式目录一个字节都不动）。
         # ══════════════════════════════════════════════════════════════
@@ -3227,9 +3227,20 @@ def run():
                       "HTTP %s → %s" % (c1r, c2r))
             _old = {"X-Signature": "sha1=" + fgsig.sign_sha1(rec2["token"], b1),
                     "Content-Type": "application/json"}
+            # 2026-11-02 起：老签名（无时间戳、无 nonce）默认关 —— 公网能无限重放
+            _ctl0 = base.bot_cfg().setdefault("control", {})
+            _keep_lg = _ctl0.get("allowLegacySha1", None)
+            _ctl0.pop("allowLegacySha1", None)
             c, _t, _h = _hit("/api", b1, _old)
-            ok &= _ck(c == 200, "老契约：`X-Signature: sha1=` 照旧能用（老头一个字节没动）",
+            ok &= _ck(c == 403, "老签名：`X-Signature: sha1=` **默认拒**（配置里没有这颗键）",
                       "HTTP %s" % c)
+            _ctl0["allowLegacySha1"] = True
+            c, _t, _h = _hit("/api", b1, _old)
+            ok &= _ck(c == 200, "老签名：打开 `bot.control.allowLegacySha1` 后才放行",
+                      "HTTP %s" % c)
+            _ctl0.pop("allowLegacySha1", None)
+            if _keep_lg is not None:
+                _ctl0["allowLegacySha1"] = _keep_lg
             _sh = base.napcat_token()
             _old2 = {"X-Signature": "sha1=" + fgsig.sign_sha1(_sh, b1),
                      "Content-Type": "application/json"}
@@ -3435,11 +3446,17 @@ def run():
                 ok &= _ck(bool(_pub) and "127.0.0.1" in _pub[-1] and "日期" not in _pub[-1],
                           "公网·开关开：进来时**写一行日志**（含来源 IP、**不记内容**）",
                           _pub[-1][:90] if _pub else "（没写）")
+                _ctlp = base.bot_cfg().setdefault("control", {})
+                _keep_lg2 = _ctlp.get("allowLegacySha1", None)
+                _ctlp["allowLegacySha1"] = True
                 c, _t, _h = _hit("/api", b1,
                                  {"X-Signature": "sha1=" + fgsig.sign_sha1(rec2["token"], b1),
                                   "Content-Type": "application/json"})
-                ok &= _ck(c == 200, "公网·开关开：**老契约 `X-Signature: sha1=` 也放行**"
-                                    "（朋友那台不用改）", "HTTP %s" % c)
+                ok &= _ck(c == 200, "公网·开关开 + 老签名开：`X-Signature: sha1=` 也放行",
+                          "HTTP %s" % c)
+                _ctlp.pop("allowLegacySha1", None)
+                if _keep_lg2 is not None:
+                    _ctlp["allowLegacySha1"] = _keep_lg2
 
                 ratelimit.reset()
                 c, t, _h = _hit("/api", b1, {"Content-Type": "application/json"})
@@ -3562,9 +3579,15 @@ def run():
                                 "（控制面 / 面板动作，`role: owner` 语义没动）", "HTTP %s" % c)
             _ul6o = {"X-Signature": "sha1=" + fgsig.sign_sha1(_sh, _ul6),
                      "Content-Type": "application/json"}
+            _ctl6 = base.bot_cfg().setdefault("control", {})
+            _keep_lg6 = _ctl6.get("allowLegacySha1", None)
+            _ctl6["allowLegacySha1"] = True
             c, _t, _h = _hit("/api", _ul6, _ul6o)
-            ok &= _ck(c == 200, "本机/局域网：共享那把 + **老 sha1 签名**调控制面照旧能用"
-                                "（老契约一个字节没动）", "HTTP %s" % c)
+            ok &= _ck(c == 200, "本机/局域网：共享那把 + 老 sha1 签名（开关打开时）能用",
+                      "HTTP %s" % c)
+            _ctl6.pop("allowLegacySha1", None)
+            if _keep_lg6 is not None:
+                _ctl6["allowLegacySha1"] = _keep_lg6
             c, _t, _h = _hit("/", _nb, {"X-Signature": "sha1=" + fgsig.sign_sha1(_sh, _nb),
                                         "Content-Type": "application/json"})
             ok &= _ck(c == 204, "本机/局域网：POST /（NapCat 上报）照旧 204（本机不受影响）",
@@ -4369,7 +4392,7 @@ def run():
         ok &= _ck(guards.strip_echo("MMZ（QQ 10000）: 在的") == "在的",
                   "日志前缀：她的名字 + 自己的 QQ 号也削")
 
-        # ── 运行层提示词：用户 2026-09-26 改的（删包装句和标题行、性格只留一段散文）
+        # ── 运行层提示词：2026-09-26 改的（删包装句和标题行、性格只留一段散文）
         sysp = persona.system_prompt()
         ok &= _ck("用户写给你的性格" not in sysp and "这个文件是给你改的" not in sysp,
                   "提示词：不再带「下面这段是用户写给你的性格」和文件标题行",
@@ -4382,7 +4405,7 @@ def run():
         ok &= _ck("常识（数学" not in sysp and "改不了自己的代码" not in sysp,
                   "提示词：按用户要求删掉了那两句（常识直接答 / 改不了自己的文件）")
 
-        # ── 触发词（用户 2026-09-27 要的独立一栏；存 runtime.json，deploy 不覆盖）
+        # ── 触发词（2026-09-27 要的独立一栏；存 runtime.json，deploy 不覆盖）
         #    · 别名只在**开头**算叫她；触发词**出现在哪儿都算**
         #    · 触发词只管把话递给她，回什么全由模型组织（没有现成回复）
         #    · **不放性格文件**（用户点名的：那是"她是谁"，会整段进提示词）
@@ -4581,7 +4604,7 @@ def run():
         ok &= _ck(all(need <= set(p) for p in agent.on_api("memory", {}, _OWN_IDENT)["memory"]),
                   "记忆接口：每个人带着面板要用的字段（qq/称呼/昵称/群名片/记忆/时间）")
 
-        # ── 「记忆」页那一列的显示口径（用户 2026-10-05 定的）────────────────
+        # ── 「记忆」页那一列的显示口径（2026-10-05 定的）────────────────
         #    左列**三级降级**：称呼 → 昵称 → QQ 号；右侧固定 QQ 号；详情头部齐全。
         #    ⚠️ 这段逻辑跑在**浏览器**里，手机侧没有 node 能执行它 —— 所以这里把
         #       发出去的那段 JS 抠出来**逐字核**（谁改了那几行，这条断言就红）。
@@ -6729,7 +6752,7 @@ def run():
                   "plan：全部完成 → 自动清空（快照里一个字都不加）")
         _pe = toolkit.call("plan", {"steps": []}, {"key": ("g", 123456789)})
         ok &= _ck(_pe.get("ok") is False and _pe.get("error") == "步骤表不能是空的",
-                  "plan：步骤表空的时候那句话（用户 2026-10-30 逐字定稿）",
+                  "plan：步骤表空的时候那句话（2026-10-30 逐字定稿）",
                   repr(_pe.get("error")))
         _ = _wait_ctx
 
@@ -6737,7 +6760,7 @@ def run():
         print()
         _CUR_SECT[0] = "6.z2 四条定稿（persona / A6 安全阀 / 话术）"
         print("=== 6.z2 四条定稿（persona / A6 安全阀 / 话术）===")
-        # ⚠️ 2026-10-30（md 第 36 条 / 用户逐字定稿）：TEMPLATE **整段**是用户给的 ——
+        # ⚠️ 2026-10-30（md 第 36 条 / 定稿）：TEMPLATE **整段**是用户给的 ——
         #    删了全局「不想说话就只回某个哨兵词」、`你对他的【称呼】` 的方括号照抄。
         #    ⛔ 这段字面量就是钉子：谁把 TEMPLATE 改一个字，这里当场红。
         _TPL = """你的名字是{name}。你是由**{owner}**部署的qq机器人助手。{persona}
@@ -6763,7 +6786,7 @@ def run():
                   "运行层提示词还是 ≤ %d 字" % persona.MAX_CHARS,
                   "%d 字" % persona.prompt_chars())
 
-        # ── 收尾工具的两句场合说明（用户 2026-10-30 逐字定稿，md 第 40/41 条）──
+        # ── 收尾工具的两句场合说明（2026-10-30 逐字定稿，md 第 40/41 条）──
         _chime_line = "触发了小概率的自动接话功能，并不是有人叫你。不需要回就调 end_turn。"
         _trig_line = ("刚才对话的「%s」触发了关键词的自动接话功能，并不是有人叫你。"
                       "不需要回就调 end_turn。")
@@ -8225,7 +8248,7 @@ def run():
                          "</system-reminder>")
             ok &= _ck(_cmsg is not None and _cmsg.get("role") == "user"
                       and _cmsg.get("content") == _want_cat,
-                      "扩展①：技能目录那条消息**逐字**（用户 2026-10-31 批的四段之一）",
+                      "扩展①：技能目录那条消息**逐字**（2026-10-31 批的四段之一）",
                       repr((_cmsg or {}).get("content"))[:90])
             _cmsgs, _cbuild = agent._build(_c1, "名字")
             ok &= _ck(len(_cmsgs) >= 2 and _cmsgs[0].get("role") == "system"
@@ -9097,7 +9120,7 @@ def run():
               "缺：%s" % _dd_miss if _dd_miss else "、".join(_dd_want))
     shutil.rmtree(_dd, ignore_errors=True)
 
-    # `--set capability.extraHosts=a.com,b.com`（用户 2026-10-31 点名要的那条命令）
+    # `--set capability.extraHosts=a.com,b.com`（2026-10-31 点名要的那条命令）
     _eh = tempfile.mkdtemp(prefix="fg-extrahosts-")
     _eh_env = dict(os.environ)
     _eh_env["MMZBOT_DATA"] = _eh

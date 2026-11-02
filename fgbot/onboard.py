@@ -45,7 +45,8 @@ KEYS = (
     "bot.autoAcceptGroupInvite",
     # ⚠ 2026-11-01：主人 QQ 提到配置里（唯一判据）；称呼写 memory
     "bot.ownerQQ", "bot.ownerCallName",
-    "bot.control.allowPublic", "bot.control.allowIps",
+    "bot.control.allowPublic", "bot.control.allowLegacySha1",
+    "bot.control.allowIps",
     "port", "host",
     "napcat.baseUrl", "napcat.token",
     # ⚠️ 2026-10-31：文档验收时发现——无头配置改不了模型 ✗（只能靠 llm-key.txt）
@@ -621,7 +622,8 @@ def save(values):
                 if not isinstance(raw, list):
                     raise ValueError("群列表要是一串群号")
                 plan.append((key, raw))     # 真的校验在 _sync_groups
-            elif key == "bot.autoAcceptGroupInvite" or key == "bot.control.allowPublic" \
+            elif key == "bot.autoAcceptGroupInvite" \
+                    or key in ("bot.control.allowPublic", "bot.control.allowLegacySha1") \
                     or key == "agent.pokeBack.enabled" or key == "pcStatus.enabled":
                 plan.append((key, _bool(raw)))
             elif key == "port":

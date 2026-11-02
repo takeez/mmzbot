@@ -1557,7 +1557,7 @@ def run_turn(messages, ctx, tools=None, max_rounds=None, conn=None):
             base.log("战况那一轮：续问不带更早的对话历史了（砍掉 %d 条）" % _cut)
         for _rn, _rc in _repeats:
             base.log("同一个工具 + 同一组参数第 %d 次出现（%s），塞一句提醒" % (_rc, _rn))
-            # ⚠️ 这句是用户逐字批的（文本改动-新字清单.md 第 12 条）—— 结尾**没有句号**，
+            # ⚠️ 这句是定稿的—— 结尾**没有句号**，
             #    别顺手补一个（A4 第一版就多了一个「。」，跟批准的那份对不上）。
             messages.append({"role": "user", "content": guards.system_reminder(
                 "同一个工具（%s）、同一组参数，这一轮你已经调了 %d 次了，结果不会变。"

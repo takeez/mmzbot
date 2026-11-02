@@ -25,10 +25,15 @@ import urllib.request
 # 模型放在一个**公开**的仓库里（代码仓库是私有的，release 资产匿名下不到）
 DEFAULT_BASE = "https://github.com/takeez/miao-models/releases/download/model-bge-small-zh-v1.5"
 SUBDIR = os.path.join("models", "bge-small-zh-v1.5-onnx")
+# ⚠️ 2026-11-02：每个文件都钉了 sha256（只校验字节数不够：字节数不差但内容被换的模型
+#   照样跑，只是结果不对）。`--base` 换镜像时也照样验 —— 不一致就删掉重来，不落半截文件。
 FILES = (
-    ("model_quantized.onnx", "onnx/model_quantized.onnx", 168002),
-    ("model_quantized.onnx_data", "onnx/model_quantized.onnx_data", 23774208),
-    ("tokenizer.json", "tokenizer.json", None),
+    ("model_quantized.onnx", "onnx/model_quantized.onnx", 168002,
+     "99a6e522710c00220c89f8c52e0cc5aa09d4cbb1c34c0e932eab3a9dfdc65df3"),
+    ("model_quantized.onnx_data", "onnx/model_quantized.onnx_data", 23774208,
+     "952623481ca8beea884e3d3c9ecaf8a3c7bf1d0c21de29e970cd31af9d37a90b"),
+    ("tokenizer.json", "tokenizer.json", 362603,
+     "3d09c84ebd10306706a79a8276b3ab736a40d8ec03251c7639f4e52c3a1a4f8e"),
 )
 UA = "curl/8.5.0"
 
@@ -76,9 +81,10 @@ def main():
     print("下载源：%s" % args.base)
 
     ok = 0
-    for name, rel, size in FILES:
+    for name, rel, size, want_sha in FILES:
         dest = os.path.join(out, rel)
-        if os.path.exists(dest) and (not size or os.path.getsize(dest) == size):
+        if os.path.exists(dest) and (not size or os.path.getsize(dest) == size) \
+                and sha256_of(dest) == want_sha:
             print("  ✓ 已有 %s（跳过）" % name)
             ok += 1
             continue
@@ -88,6 +94,14 @@ def main():
             fetch(url, dest, size)
         except Exception as e:
             print("  ✗ %s 失败：%s" % (name, str(e)[:120]))
+            try:
+                os.remove(dest)
+            except Exception:
+                pass
+            continue
+        got = sha256_of(dest)
+        if got != want_sha:
+            print("  ✗ %s 内容对不上（sha256 %s… ≠ %s…）" % (name, got[:12], want_sha[:12]))
             try:
                 os.remove(dest)
             except Exception:

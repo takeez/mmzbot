@@ -119,7 +119,7 @@
 **伪造的 `X-Forwarded-For: 127.0.0.1` 提不了权**（自检里钉着）。细节在 `fgbot/proxy.py`。
 
 ⚠️ **这个文件不是 agent**，别把"该怎么想、该不该回、怎么说话"写进来 ——
-   那些全在 agent 层（见「给新agent的指令.md」）。这里只做搬运和鉴权。
+   那些全在 agent 层（见「项目约定」）。这里只做搬运和鉴权。
 
 ═══ 两个不能忘的坑 ═══
 
@@ -339,6 +339,18 @@ def allow_public():
     """
     c = base.bot_cfg().get("control") or {}
     return c.get("allowPublic") is True
+
+
+def allow_legacy_sha1():
+    """`bot.control.allowLegacySha1`：老签名 `X-Signature: sha1=` 许不许用。
+
+    老签名不带时间戳、不带 nonce（只签正文）—— 公网上抓一次包就能无限重放。
+    默认 **false**：新客户端走 `X-FG-Signature`（±120 秒 + nonce）。
+    ⚠️ `POST /`（NapCat 上报）那条路不受这颗键管：它只许本机 / 局域网，
+       而且 NapCat 的契约就是 sha1，动了会把它弄断。
+    """
+    c = base.bot_cfg().get("control") or {}
+    return c.get("allowLegacySha1") is True
 
 
 def panel_remote():
@@ -618,6 +630,8 @@ class Handler(BaseHTTPRequestHandler):
             return ident, why
         old = self.headers.get("X-Signature") or self.headers.get("X-Signature-Sha1")
         if old:
+            if not allow_legacy_sha1():
+                return None, "老签名已关（bot.control.allowLegacySha1）"
             ident, tok, why = fgsig.verify_old(old, body, cand)
             self._matched_token = tok or ""
             return ident, why

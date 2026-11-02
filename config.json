@@ -44,8 +44,10 @@
       "lanEnabled": true,
       "allowIps": [],
       "_allowIps_说明": "**谁能开面板 / 用 /status**（宽松版；本机永远放行）。2026-10-03 起：**留空不再等于「谁都能进」**，留空 = 只认本机；支持 CIDR 网段。**公网来源一律 403 空正文** —— 和下面那颗 `allowPublic` 无关：那颗键**只对 `/api` 那一条路**生效，面板 / `/status` / NapCat 上报（`POST /`）永远只许本机 + 这个名单。",
-      "allowPublic": true,
-      "_allowPublic_说明": "**公网来源能不能调 `/api`**（2026-10-03 加，**默认 false**）。false = 和从前一模一样：公网来源一律 403 空正文。true = **只把 `POST /api` 这一条路**放到「鉴权那一步」：必须带**有效凭据**（新签名 `X-FG-Signature` 或老 `X-Signature: sha1=`，用 users.json 里**每人一把**的 token；共享那把 napcatToken 公网不认；`Bearer` 也不给公网），没凭据/签错 → 403 空正文 + 计一次失败（5 分钟 10 次 → 429）；就算凭据对，公网也**只许调 `status.push` 和 `announce`**（重启她、清对话记忆、改/删模型 API 这些公网一律 403）。⛔ `/panel`、`/status`、`POST /`（NapCat 上报）**不受这颗键影响，永远只许本机 + 局域网**。**改回 false 立刻恢复「公网一律 403」**（热重载，不用重启）。⚠️ 手机本地的 local-config.json 里也有这个键的话，以本地那份为准。"
+      "allowPublic": false,
+      "_allowPublic_说明": "**公网来源能不能调 `/api`**（2026-10-03 加，**默认 false**）。false = 和从前一模一样：公网来源一律 403 空正文。true = **只把 `POST /api` 这一条路**放到「鉴权那一步」：必须带**有效凭据**（新签名 `X-FG-Signature` 或老 `X-Signature: sha1=`，用 users.json 里**每人一把**的 token；共享那把 napcatToken 公网不认；`Bearer` 也不给公网），没凭据/签错 → 403 空正文 + 计一次失败（5 分钟 10 次 → 429）；就算凭据对，公网也**只许调 `status.push` 和 `announce`**（重启她、清对话记忆、改/删模型 API 这些公网一律 403）。⛔ `/panel`、`/status`、`POST /`（NapCat 上报）**不受这颗键影响，永远只许本机 + 局域网**。**改回 false 立刻恢复「公网一律 403」**（热重载，不用重启）。⚠️ 手机本地的 local-config.json 里也有这个键的话，以本地那份为准。",
+      "allowLegacySha1": false,
+      "_allowLegacySha1_说明": "老签名 `X-Signature: sha1=` 许不许用（**默认 false**）。它不带时间戳也不带 nonce，公网抓一次包就能无限重放；新客户端请用 `X-FG-Signature`。NapCat 上报那条路不受它管。"
     },
     "_说明": "selfId=她的 QQ；groups=只在这些群里理人（会并上 users.json 里每个用户登记的群）；token=两边对上就行（NapCat 上报 + 主人自己那台）；quoteReply=回消息时引用那条；autoAcceptGroupInvite=朋友拉她进群时自不同意（**默认 false**：群邀请和好友申请都进面板「申请」排队等用户裁决，见上面那颗键的长说明）；control=谁能用 /status /panel（本机永远放行）**以及公网能不能调 /api**（`control.allowPublic`，默认 false = 公网一律 403）。"
   },

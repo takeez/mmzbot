@@ -53,6 +53,7 @@ tools 末尾（不重排已有工具）；同时最多 6 个包，超了摘最�
 import base64
 import builtins
 import hashlib
+import ast
 import importlib.util
 import json
 import os
@@ -63,6 +64,7 @@ import sys
 import tempfile
 import threading
 import time
+import types
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -241,6 +243,37 @@ def _body_of(text):
 
 
 # ── tool.py：import + 取定义 ────────────────────────────────────────
+
+def _static_tool(path):
+    """静态读 tool.py：**不 import、不执行**对方任何一行代码。
+
+    ⚠️ 2026-11-02：以前校验第③条就是 `import` 对方的 tool.py —— "校验"这个动作本身
+      就在执行别人的代码（装一个包 = RCE 两次）。现在只用 ast 看定义：
+      模块级常量（NAME/DESC/PARAMS 等）必须是字面量才认，函数只看名字。
+      真正运行时还是要 import（那是用户点了"启用"之后的事）。
+    """
+    src = _text(path)
+    tree = ast.parse(src, filename=path)      # 语法错直接抛 SyntaxError
+    ns = types.SimpleNamespace()
+    required = ("NAME", "DESC", "PARAMS", "TIMEOUT",
+                "name", "desc", "params", "timeout")
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            for t in node.targets:
+                if not isinstance(t, ast.Name):
+                    continue
+                try:
+                    val = ast.literal_eval(node.value)
+                except Exception:
+                    if t.id in required:
+                        raise ValueError("%s 不是字面量（校验时不跑代码）" % t.id)
+                    continue          # 别的常量是算出来的也没关系（不在校验口径里）
+                setattr(ns, t.id, val)
+        elif isinstance(node, ast.FunctionDef):
+            if node.name in ("run", "available", "RUN", "AVAILABLE"):
+                setattr(ns, node.name, lambda *a, **k: None)
+    return ns
+
 
 def _import_tool(path, name):
     """把 tool.py import 出来。失败原样抛（校验第 ③ 条会把它变成一句人话）。
@@ -458,11 +491,13 @@ def validate(root, folder_name=None, other_tools=None):
     mod = None
     if _is_file(tool_py):
         try:
-            mod = _import_tool(tool_py, folder or name or "x")
+            mod = _static_tool(tool_py)
         except SyntaxError as e:
             fail(3, "tool.py 语法错误（第 %s 行）：%s" % (getattr(e, "lineno", "?"), e.msg))
+            mod = None
         except Exception as e:
-            fail(3, "tool.py import 失败：%s: %s" % (type(e).__name__, e))
+            fail(3, "tool.py 读不出来：%s: %s" % (type(e).__name__, e))
+            mod = None
         else:
             tools, why = _tools_of(mod)
             if not tools:
@@ -671,7 +706,24 @@ def _load_dir(path, builtin=False, folder_name=None):
     cap.declared = builtins.list(info.get("declared") or [])
     cap.tools = builtins.list(info.get("tools") or [])
     cap.body = info.get("body") or ""
+    # ⚠️ 校验是静态的（不执行对方代码）；**真正加载**才 import —— 这是运行时，
+    #    用户已经点过"装"了，行为要和以前一致（工具函数得是真函数）。
     cap.mod = info.get("mod")
+    if cap.ok:
+        tool_py = os.path.join(path, "tool.py")
+        if os.path.isfile(tool_py):
+            try:
+                cap.mod = _import_tool(tool_py, folder)
+                # 工具定义（含 run 函数）以**真正 import 出来的模块**为准：
+                # 校验用的是静态快照，里面的 run 只是个占位。
+                real_tools, _why = _tools_of(cap.mod)
+                if real_tools:
+                    cap.tools = real_tools
+            except Exception as e:
+                cap.ok = False
+                base.log("扩展包 %s 载入失败：%s: %s" % (folder, type(e).__name__, e))
+        else:
+            cap.mod = None
     with _LOCK:
         _CACHE[path] = cap
         prev = _LOGGED_BAD.get(path)
