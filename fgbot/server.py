@@ -152,7 +152,7 @@ MAX_NAPCAT_BODY = 8 * 1024 * 1024
 # 登录那个表单只有两个字段（口令 + next），4 KB 已经离谱地宽了。
 MAX_LOGIN_BODY = 4 * 1024
 
-# ── 并发闸（2026-10-03 加）────────────────────────────────────────────
+# ── 并发闸────────────────────────────────────────────
 #
 # 为什么要有它：`ThreadingHTTPServer` **每个请求开一条线程、一条上限都没有** ——
 # 端口一旦映射到公网，任何人拿几百条并发连接就能把它撑死（线程一多，内存和调度
@@ -268,7 +268,7 @@ class GatedServer(ThreadingHTTPServer):
 
 # ── 来源判定（本机 / 局域网 / 白名单）────────────────────────────────
 #
-# ⚠️ 2026-10-03 改过一处**行为**：`allowIps` **留空不再等于"谁都能进"**。
+# ⚠️ 改过一处**行为**：`allowIps` **留空不再等于"谁都能进"**。
 #    A5 实测过：原来是 `(not allow) or (ip in allow)` → 留空 = **任何 IP 都放行**
 #    （连公网来源都算"局域网"）。现在：留空 = **只认本机**；要开局域网必须写明网段，
 #    而且支持 **CIDR**（`192.168.1.0/24`，原来是字符串精确相等，填网段根本匹配不上）。
@@ -389,7 +389,7 @@ def panel_allowed(ip):
 # ⚠️ 这里**不算鉴权失败**（凭据是对的）：它不该把朋友自己拖进 429 封禁里。
 PUBLIC_ACTIONS = ("status.push", "announce", "broadcast", "播报")
 
-# 推送那两条动作（2026-10-04 第四批）：**只认 `users.json` 里「每人一把」的用户令牌**。
+# 推送那两条动作：**只认 `users.json` 里「每人一把」的用户令牌**。
 #   · `announce` / `broadcast` / `播报`（播报）与 `status.push`（心跳）—— 电脑推上来的数据；
 #   · 凭据必须是用户表里某一条记录那把 token（`_identify()` 认出来的身份 = 那条记录的 id）；
 #   · **共享那把**（`bot.token` / `napcatToken`，身份 `own`）来推 → **403 空正文**，
@@ -401,7 +401,7 @@ PUBLIC_ACTIONS = ("status.push", "announce", "broadcast", "播报")
 #    两个各写一份、别互相引用（哪天公网那条改了口径，推送这条不该被带着变）。
 PUSH_ACTIONS = ("status.push", "announce", "broadcast", "播报")
 
-# 哪些动作的响应**绝不许被浏览器 / 中间层缓存**（2026-10-03 加）：
+# 哪些动作的响应**绝不许被浏览器 / 中间层缓存**：
 #   · `token.show` —— 正文里就是那把共享令牌明文（已鉴权 + 主人那一支才拿得到）。
 # ⚠️ 动作名的**唯一真相在 `agent.TOKEN_SHOW_ACTIONS`**（含中文别名）——
 #    那边加一个别名，这里自动跟上，别在两处各写一份。
@@ -499,7 +499,7 @@ def build_ctx(evt, raw_body):
         "files": (files.refs_from_raw(raw)
                   or files.refs_from_segs(evt.get("message") or [])),
         # 他**引用（回复）了哪一条**（被引用那条的 message_id；没引用就是 None）。
-        # 用户 2026-09-30 点名要的路：引用里那张已经发出去过的图，也要让她看见
+        # 路：引用里那张已经发出去过的图，也要让她看见
         # （历史里只剩 [图片] 占位）。取图在 images.load_quoted() 里。
         "reply_to": napcat.reply_id(evt),
         "message_id": napcat.message_id(evt),
@@ -510,7 +510,7 @@ def build_ctx(evt, raw_body):
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
-    # ── 响应头里**不报服务器指纹**（2026-10-04 加固）────────────────────
+    # ── 响应头里**不报服务器指纹**────────────────────
     #
     # 标准库的 `send_response()` 默认在**每条**响应上加两个头：`Server: BaseHTTP/0.6
     # Python/3.11.2` 和 `Date`。端口一映射到公网，那个 `Server` 就是白送一条"这台机器
@@ -721,7 +721,7 @@ class Handler(BaseHTTPRequestHandler):
     # ── GET ────────────────────────────────────────────────────────
     def do_GET(self):
         try:
-            # ⚠ 2026-11-01：面板/登录/status 这条路以前**从不重载配置**，
+            # ⚠ 面板/登录/status 这条路以前**从不重载配置**，
             #   只有"收到消息"那条路会调 maybe_reload() ——
             #   于是 `--set panel.allowRemote=true` 后面板还是 403、
             #   `--set llm.apiKey` 后 /status 还是"没有"（VM 验收时真踩到）。
@@ -730,7 +730,7 @@ class Handler(BaseHTTPRequestHandler):
             ip = self._ip
             path = (self.path or "/").split("?")[0].rstrip("/") or "/"
             if path == "/":
-                # ⚠️ 2026-10-04：根路径也是**信息类**入口（会回内容），所以和 /panel 一样
+                # ⚠️ 根路径也是**信息类**入口（会回内容），所以和 /panel 一样
                 #    只给本机 + `bot.control.allowIps`。公网来源一律 **404 + 空正文**
                 #    （用 404 而不是 403：对外就是"这里没有任何东西"）。
                 #    ⚠️ 本机 / 局域网**一个字都不变** —— 用户平时在电脑上开它。
@@ -762,7 +762,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if path == "/panel":
                 # ⚠️ A5 定稿：本机 / 局域网打开面板要手输一次令牌（页面里不带凭据）。
-                # ⚠️ 2026-10-31：公网 / 反代后面（`panel.allowRemote: true`）先过**登录**：
+                # ⚠️ 公网 / 反代后面（`panel.allowRemote: true`）先过**登录**：
                 #    没会话 → 登录页（不是 403 白屏、也不是直接进）；有会话 → 面板，
                 #    页面里仍然**没有任何令牌**（凭据在 HttpOnly cookie 里）。
                 if not panel_allowed(ip):
@@ -802,7 +802,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(llm.providers_public())
                 return
             if path == "/onboard":
-                # 设置页的现算值（2026-10-31）：每块状态 + 「能不能跑」那张表。
+                # 设置页的现算值：每块状态 + 「能不能跑」那张表。
                 # ⚠️ 同一道门（面板那几个 GET）+ **只有主人**（和 token.show 同口径）——
                 #    这一份里有她的 QQ 号、NapCat 地址、群号；token 只有 `****`。
                 # ⛔ 响应带 `no-store`：别让浏览器/中间层把它缓存下来。
@@ -897,7 +897,7 @@ class Handler(BaseHTTPRequestHandler):
                         threading.Thread(target=agent.on_notice, args=(evt,), daemon=True).start()
                     elif ptype == "request":
                         # 「请求」这类上报（典型：朋友把机器人拉进群）。
-                        # ⚠️ 2026-10-04 之前这里落进下面那个 else，只写一行「没处理」——
+                        # ⚠️ 之前这里落进下面那个 else，只写一行「没处理」——
                         #    也就是**从来不应答**，用户得自己拿手机点同意。现在交给 agent 层
                         #    （和 notice 一个形状：单开一条线程，她那一层出事绝不牵连这条路）。
                         threading.Thread(target=agent.on_request, args=(evt,), daemon=True).start()
@@ -1044,7 +1044,7 @@ class Handler(BaseHTTPRequestHandler):
                 # 公网来源：默认一律 403（一个字节的正文都不回）；开了那颗键才放它
                 # 走到下面鉴权那一步，并且**每跳都留一行日志**（来源 IP，不记内容）。
                 if session:
-                    # 2026-10-31：`/login` 拿到的会话 = 主人，远程面板的 `/api` 走这条。
+                    # `/login` 拿到的会话 = 主人，远程面板的 `/api` 走这条。
                     base.log("控制面：远程登录会话（来源 %s）进来 —— 身份 = 主人" % ip)
                 elif not allow_public():
                     base.log("控制面：拦下一个公网来源 %s（bot.control.allowPublic 没开，"
@@ -1078,7 +1078,7 @@ class Handler(BaseHTTPRequestHandler):
             act = (req.get("action") or "").strip().lower()
             # 公网来源**只许那两条**（见 PUBLIC_ACTIONS）：控制面那些动作
             # （重启/清记忆/删模型 API/改记忆…）从公网一律 403 空正文。
-            # ⚠️ 2026-10-31：**登录会话**那条路是例外 —— 会话身份 = 主人（`/login` 验过
+            # ⚠️ **登录会话**那条路是例外 —— 会话身份 = 主人（`/login` 验过
             #    共享令牌才发的），远程面板的 `/api` 要能调控制面。公网签名那条路
             #    （`allowPublic`）一个字没松，仍然只放那两条。
             if (not is_lan(ip)) and act not in PUBLIC_ACTIONS and not self._via_session:
@@ -1086,7 +1086,7 @@ class Handler(BaseHTTPRequestHandler):
                          "（公网只放 %s）" % (ip, act, "、".join(PUBLIC_ACTIONS)))
                 self._empty(403)
                 return
-            # ── 2026-10-04（第四批）：推送那两条**只认「每人一把」的用户令牌** ──
+            # ── （第四批）：推送那两条**只认「每人一把」的用户令牌** ──
             #    `announce`（含别名「播报」/「broadcast」）与 `status.push` 是**电脑推上来的
             #    数据**：凭据必须是 `users.json` 里某一条记录的那把 token（身份 = 那条的 id）。
             #    **共享那把**（`bot.token` / `napcatToken`）来推 → **403 空正文**，
@@ -1110,7 +1110,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._handle_status_push(req, ident)
                 return
             if act == "restart":
-                # ⚠️ 2026-10-05（用户拍板"需要只有我能调"）：重启她**只有主人**能调
+                # ⚠️ （"需要只有我能调"）：重启她**只有主人**能调
                 #    （和 `user.*` / `group.*` / `request.*` / `token.show` 同一个口径：
                 #    不是主人 → **403 空正文**）。从前本机 / 局域网任何一把有用户令牌的人
                 #    都能让她重启。⚠️ `agent.on_api` 里那条 `重启` 走的是同一道闸
@@ -1191,7 +1191,7 @@ def _on_message(evt, raw_body):
     try:
         base.maybe_reload()
         ctx = build_ctx(evt, raw_body)
-        # ⚠️ `ctx["text"]` 里已经没有 `[CQ:reply,id=…]` 了（2026-09-30 用户批的：
+        # ⚠️ `ctx["text"]` 里已经没有 `[CQ:reply,id=…]` 了（：
         #    机器码不进给模型看的文本）。日志里要一眼看出"这条是引用"，所以这里
         #    单独补一个**纯日志用**的标记 —— 不进模型、不影响任何判定。
         quote = "（引用 %s）" % ctx["reply_to"] if ctx.get("reply_to") else ""

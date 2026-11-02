@@ -25,7 +25,7 @@ import urllib.request
 # 模型放在一个**公开**的仓库里（代码仓库是私有的，release 资产匿名下不到）
 DEFAULT_BASE = "https://github.com/takeez/miao-models/releases/download/model-bge-small-zh-v1.5"
 SUBDIR = os.path.join("models", "bge-small-zh-v1.5-onnx")
-# ⚠️ 2026-11-02：每个文件都钉了 sha256（只校验字节数不够：字节数不差但内容被换的模型
+# ⚠️ 每个文件都钉了 sha256（只校验字节数不够：字节数不差但内容被换的模型
 #   照样跑，只是结果不对）。`--base` 换镜像时也照样验 —— 不一致就删掉重来，不落半截文件。
 FILES = (
     ("model_quantized.onnx", "onnx/model_quantized.onnx", 168002,

@@ -43,25 +43,25 @@ _SETTINGS_SHADOWED = ("agent.maxGroupReplyChars", "agent.maxPrivateReplyChars")
 KEYS = (
     "bot.selfId", "bot.token", "bot.napcatToken", "bot.groups",
     "bot.autoAcceptGroupInvite",
-    # ⚠ 2026-11-01：主人 QQ 提到配置里（唯一判据）；称呼写 memory
+    # ⚠ 主人 QQ 提到配置里（唯一判据）；称呼写 memory
     "bot.ownerQQ", "bot.ownerCallName",
     "bot.control.allowPublic", "bot.control.allowLegacySha1",
     "bot.control.allowIps",
     "port", "host",
     "napcat.baseUrl", "napcat.token",
-    # ⚠️ 2026-10-31：文档验收时发现——无头配置改不了模型 ✗（只能靠 llm-key.txt）
+    # ⚠️ 文档验收时发现——无头配置改不了模型 ✗（只能靠 llm-key.txt）
     #    这三颗补上后，`--set llm.baseUrl=... llm.model=... llm.apiKey=...` 和面板等价 ✓
     "llm.baseUrl", "llm.model", "llm.apiKey",
-    # ⚠ 2026-11-01：思考强度以前只能面板改，无头部署没入口
+    # ⚠ 思考强度以前只能面板改，无头部署没入口
     "llm.effort",
-    # 面板远程访问（2026-10-31）：公网要登录 / 反代后面信谁（见 docs/reverse-proxy.md）
+    # 面板远程访问：公网要登录 / 反代后面信谁（见 docs/reverse-proxy.md）
     "panel.allowRemote", "panel.trustedProxies",
     "agent.name", "agent.wakeWords", "agent.triggerWords",
     "agent.chimeIn.chancePercent", "agent.pokeBack.enabled",
     "agent.maxGroupReplyChars", "agent.maxPrivateReplyChars",
     "pcStatus.enabled", "pcStatus.reportWindow", "pcStatus.dayCutoff",
     "pcStatus.computerName",
-    # 扩展包下载白名单的**额外**域名（2026-10-31）：默认那几个在 capabilities.DEFAULT_HOSTS
+    # 扩展包下载白名单的**额外**域名：默认那几个在 capabilities.DEFAULT_HOSTS
     "capability.extraHosts",
     "capability.downloadProxy",
 )
@@ -315,7 +315,7 @@ def _self_id():
 
 
 # 占位值黑名单（出厂模板、教程里的假号码）。
-# ⚠ 2026-11-01：VM 验收时用 1234567890 就能让 `--check` 全绿 ✗
+# ⚠ VM 验收时用 1234567890 就能让 `--check` 全绿 ✗
 #   那不是"能跑"，是"填了个假的"。现在这些一律当成没填。
 _FAKE_QQ = {"10000", "1234567890", "123456789", "12345678", "10001"}
 _FAKE_KEY_BITS = ("placeholder", "your-key", "yourkey", "sk-test", "changeme",
@@ -363,7 +363,7 @@ def _brain():
     try:
         conn = llm.connection()
         key = _s(conn.get("key"))
-        # ⚠ 2026-11-01：`sk-PLACEHOLDER-not-a-real-key` 过去也算"已配置" ✗
+        # ⚠ `sk-PLACEHOLDER-not-a-real-key` 过去也算"已配置" ✗
         return {"ok": bool(_s(conn.get("model")) and key and not _looks_fake_key(key)),
                 "provider": _s(conn.get("name")),
                 "model": _s(conn.get("model")),
@@ -420,7 +420,7 @@ def snapshot():
 
     # 群列表
     grows = _group_rows()
-    # ⚠ 2026-11-01：出厂模板里的群号（123456789 之类）是**占位值**，
+    # ⚠ 出厂模板里的群号（123456789 之类）是**占位值**，
     #   以前一律算"填了" → 部署验收时出现**假绿**：一个真群都没有却 ✓
     #   （新手最容易漏这项，而它偏偏是绿的 ✗）
     _PLACEHOLDER_GIDS = {"123456789", "10000", "666000111", "666000333", "987654321"}
@@ -716,7 +716,7 @@ def save(values):
                 group_side = (keep, note_map)
             elif key == "bot.token":
                 # 「两边的 token」= NapCat 上报那把 + 面板登录那把，写同一个值。
-                # ⚠️ 2026-10-31：还要写 `napcat.token` —— 她**出站**调 NapCat 的 HTTP
+                # ⚠️ 还要写 `napcat.token` —— 她**出站**调 NapCat 的 HTTP
                 #    用的正是这把；漏了它，NapCat 一设 token 她就调不动（文档验收发现的）。
                 _set_path(patch, "bot.token", val)
                 _set_path(patch, "bot.napcatToken", val)

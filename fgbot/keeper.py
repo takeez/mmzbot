@@ -28,7 +28,7 @@ import time
 
 from . import base, memory, settings
 
-# ── 管家那次请求的正文（用户 2026-10-30 逐字批的，⛔ 一个字都不许改）──────
+# ── 管家那次请求的正文──────
 KEEPER_BODY = """这是一个人的记忆，一行一条，行首的数字是编号：
 
 %s
@@ -147,7 +147,7 @@ def review(qq, new_text):
         return False
     lines = "\n".join("%d. %s" % (i, f) for i, f in enumerate(facts, 1))
     body = KEEPER_BODY % (lines, new_text)
-    # ⚠️ 2026-10-30：空回复要再问一次 —— 模型偶尔把 token 全用在思考上、正文是空的
+    # ⚠️ 空回复要再问一次 —— 模型偶尔把 token 全用在思考上、正文是空的
     #    （测出过连续 3 次 finish_reason=length）。问两次都没正文才放弃。
     got = ""
     max_tokens = settings.get("keeper.maxTokens")
@@ -211,6 +211,6 @@ def review(qq, new_text):
     _refresh_vectors(qq, facts, new_facts)
     base.log("管家：%s 的记忆动过了 —— 删 %s、加 %d 条（现在 %d 条）"
              % (qq, want_del or "无", len(adds), len(new_facts)))
-    # ⚠️ 2026-10-30：返回的是【这次加进去的句子列表】（不是 True）。
+    # ⚠️ 返回的是【这次加进去的句子列表】（不是 True）。
     #    调用方 `t_memory` 靠它判断"这条新的有没有已经由管家写进去"—— 有就不再重复加。
     return list(adds)

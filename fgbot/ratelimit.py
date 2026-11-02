@@ -24,7 +24,7 @@ BAN_SECONDS = 900             # 15 分钟
 RETRY_AFTER_MAX = 900         # 契约里电脑侧最多认到 15 分钟
 
 # ⚠️ 必须是 **RLock**：`state()` 自己拿着锁、里面又调 `retry_after()`（也要锁）。
-#    用普通 Lock 会在第一次调用就死锁（自检直接挂住，2026-10-03 踩过）。
+#    用普通 Lock 会在第一次调用就死锁。
 _lock = threading.RLock()
 _fails = {}                   # ip -> [失败时刻, …]
 _bans = {}                    # ip -> 解封时刻

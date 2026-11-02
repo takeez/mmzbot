@@ -459,7 +459,7 @@ def load():
         p = _cfg_path()
         new = _read_json(p)
         if new is None:
-            # ⚠ 2026-11-01：文件**不存在**是正常状态（还没 --init-config），
+            # ⚠ 文件**不存在**是正常状态（还没 --init-config），
             #   以前这里也打「读不出来」→ 新手以为装坏了（部署验收时真被问到）。
             if os.path.exists(p):
                 log("config.json 读不出来（或者不是 JSON 对象）—— 沿用上一份")

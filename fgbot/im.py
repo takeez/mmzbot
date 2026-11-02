@@ -280,7 +280,7 @@ def _cq_clean(text, faces=None):
         return ""
 
     out = m_cq.sub(_one, text)
-    # 用户 2026-10-30：别的 CQ 码直接剥掉，**不记日志**（日志留给真问题）
+    # 用户 别的 CQ 码直接剥掉，**不记日志**（日志留给真问题）
     # ⚠️ 只在"整条被剥空"时才返回空串；别 strip 尾部空白（拆条要逐字拼回去）
     if not out.strip() and ids:
         out = ""
@@ -472,7 +472,7 @@ def _discover_pc(port):
 
     host = found[0]
     base.log("找到电脑了：%s（原配置 %s）" % (host, base.cfg().get("pc", {}).get("url")))
-    # ⚠️ 2026-10-03：这里原来还有一行 `base.save_pc_url(...)`，把找到的地址落进
+    # ⚠️ 这里原来还有一行 `base.save_pc_url(...)`，把找到的地址落进
     #    `pc-address.txt`。全仓库 grep 过 —— 那个文件**只被写、从来没被读回来**
     #    （重启就丢 = 死代码），用户拍板选 (b)：**删掉写点，让这个文件彻底消失**。
     #    ⚠️ **扫描逻辑本身保留**（这一段一个字没动）：找到的那一次照样用，
@@ -621,7 +621,7 @@ def forward_to_pc(raw_body):
 
     # ⚠️ 两套签名**用同一把 token**（两台机器必须共享同一个值）：
     #    ① 老 `X-Signature: sha1=` —— 老契约，电脑侧冻结的那一条，**照旧发**；
-    #    ② 新 `X-FG-Signature: sha256=` + 时间戳 + nonce —— 2026-10-03 互联网改造那一批
+    #    ② 新 `X-FG-Signature: sha256=` + 时间戳 + nonce —— 互联网改造那一批
     #       加的双向重放保护（契约 §6.2 坑 2：手机发出的请求也要带这两样）。
     #    手机 → 电脑那个方向的 token 就是**这台电脑配的那把**；主人自己那台用的
     #    就是现有这把共享 token（`bot.napcatToken`，缺了自动回退 `bot.token`，

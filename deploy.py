@@ -80,7 +80,7 @@ if HERE not in sys.path:
 
 # 「代码」= 要重启才生效的那部分
 #
-# ⚠️ 2026-10-31：仓库自带的扩展包（`capabilities/<包名>/`：SKILL.md + tool.py）
+# ⚠️ 仓库自带的扩展包（`capabilities/<包名>/`：SKILL.md + tool.py）
 #    也算代码 —— 不推的话手机上那个 `capabilities/` 是空的，`pack-manager` 直接消失。
 #    `examples/packages/`（示例包的源码 + 安装包 zip）也一起推：README / 文档里
 #    `--install-capability examples/packages/pc-status-1.0.0.zip` 那条命令要在手机上能用。
@@ -91,7 +91,7 @@ CODE_FILES = ["phone-bot-v2.py"]
 CODE_DIRS = {"fgbot": ".py",
              "capabilities": (".md", ".py"),
              "examples": (".md", ".py", ".zip"),
-             # ⚠ 2026-11-02：`tools/` 也要推——用户装完要跑 `tools/fetch_model.py`放模型；
+             # ⚠ `tools/` 也要推——用户装完要跑 `tools/fetch_model.py`放模型；
              #   而且 -—selftest 验证示例包时会 import 它里面那个生成脚本。
              "tools": ".py"}
 
@@ -102,7 +102,7 @@ LAUNCH_FILES = ["mmzbot.ps1", "fg-bot-v2-start.sh", "mmzbot-watchdog.sh", "run.s
                 "runinc.sh", "requirements.txt",
                 "mmzbot.service"]
 
-# ⚠ 2026-11-02：目录整理后，这几份脚本放进了 `scripts/<平台>/`。
+# ⚠ 目录整理后，这几份脚本放进了 `scripts/<平台>/`。
 #   部署到远程时**仍然按原来那个平铺名字**落地（$HOME/fg-bot-v2-start.sh 这类路径不变），
 #   所以这里是"源路径 → 目标名字"的映射；upload() 会据此把子目录展平。
 LAUNCH_SRC = {
@@ -148,7 +148,7 @@ NEVER = {"bot.log",
          "seen-groups.json",
          "group-names.json",
          "requests.json",
-         # 扩展包的停用名单（2026-10-31）：用户在这台机器上停用了谁，绝不能被 deploy 抹掉
+         # 扩展包的停用名单：用户在这台机器上停用了谁，绝不能被 deploy 抹掉
          "capabilities-state.json",
          # 部署自己的东西（备份 / 暂存）也绝不推
          "deploy.json",

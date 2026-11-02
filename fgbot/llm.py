@@ -51,7 +51,7 @@ _OC_SESSION = ""
 APIS_FILE = "llm-apis.txt"
 RUNTIME_FILE = "runtime.json"      # 手机上改的运行开关（App/面板），deploy 不覆盖
 
-# ── 提供商 / 模型目录（2026-10-30 照 DSH 那套重做）──────────────────
+# ── 提供商 / 模型目录──────────────────
 #
 # `llm-apis.txt` 的形状（v2）：
 #   {"active":  {"provider","model","effort","effortFrom"},
@@ -87,7 +87,7 @@ RETRY_STATUS = (429, 500, 502, 503, 504)
 MAX_TRIES = 3
 BACKOFF = (0.5, 2.0)
 
-# 空回复进日志时，原始返回体截多长（2026-10-02 加的：那次 45 分钟里收到什么，一个字节都没留）
+# 空回复进日志时，原始返回体截多长
 EMPTY_BODY_CHARS = 800
 
 _TRANSPORT = None                 # 自检挂钩：假传输层
@@ -295,7 +295,7 @@ def _key_from_file(cfg):
        **先数据目录、再代码目录**。仍然是"跟 config.json 一个目录"，
        只是那个目录不再写死成代码所在目录。
     """
-    # ⚠ 2026-11-01：以前 keyFile 写成空串也会回落默认 `llm-key.txt` ✗
+    # ⚠ 以前 keyFile 写成空串也会回落默认 `llm-key.txt` ✗
     #   于是「面板/--set 填了 llm.apiKey」时，数据目录里那份旧 llm-key.txt
     #   仍然盖过它 → 用户看到的是"填了不生效"（部署验收时发现的）。
     #   现在：**显式写空 = 不要文件**（自己配了 apiKey 就该听 apiKey）。
@@ -404,7 +404,7 @@ def _conn_for(d, provider_id, model_id, effort, effort_from):
     key = _s(p.get("key")) or _key_from_file(cfg) or _s(cfg.get("apiKey"))
     thinking = (cfg.get("thinking") or "enabled").strip().lower()
     model = (_s(model_id) or cfg.get("model") or "deepseek-chat").strip()
-    # ── 请求头（2026-10-30）──────────────────────────────────────────
+    # ── 请求头──────────────────────────────────────────
     # ⚠️ opencode 中转站：① 默认 UA 会被 Cloudflare 拦（error code 1010）
     #    ② /zen/go 那条路必须带 `x-opencode-session`，不带就 404 / 402。
     #    → UA 一律给 curl；只有打 opencode 时才加 session 头（别的家不认这个头）。
@@ -911,14 +911,14 @@ def api_del(name):
 def _payload(messages, tools, conn, model=None, max_tokens=None):
     p = {"model": model or conn["model"], "messages": messages, "stream": False}
     if conn.get("gemini"):
-        # ⚠️ 2026-10-30：gemini 走 opencode 中转时不认 `thinking` 字段（发过去 400），
+        # ⚠️ gemini 走 opencode 中转时不认 `thinking` 字段（发过去 400），
         #    只认 `reasoning_effort`。所以这条路只发 effort，取值 none/low/medium/high。
         eff = "none" if (conn["thinking"] == "disabled" or conn["effort"] == "off") else conn["effort"]
         if eff in ("none", "low", "medium", "high"):
             p["reasoning_effort"] = eff
     # 思考：DSH 的写法 —— enabled 时同时发 thinking 和 reasoning_effort，
     # off 时只发 thinking:disabled（"off" 这个强度本身绝不上线）。
-    # ⚠️ 2026-10-30：面板多了 `none` / `medium` 两个值 —— `none` 按关思考走，
+    # ⚠️ 面板多了 `none` / `medium` 两个值 —— `none` 按关思考走，
     #    `medium` 原样发（只影响这两个新值，老四个的行为一个字节没动）。
     elif conn["thinking"] == "disabled" or conn["effort"] in ("off", "none"):
         p["thinking"] = {"type": "disabled"}
@@ -1274,7 +1274,7 @@ def _post(payload, conn):
         ch = (d.get("choices") or [{}])[0]
         msg = ch.get("message") or {}
         if not (msg.get("content") or "").strip() and not (msg.get("tool_calls") or []):
-            # ⚠️ **原始证据一行都不能少**（2026-10-02：45 分钟里到底收到什么，查不回来）。
+            # ⚠️ **原始证据一行都不能少**。
             #    finish_reason + 截断后的原始 body + HTTP 状态码 + 这次耗时，全写进日志。
             #    ⛔ 只写日志：给模型看的文本、EMPTY_RESPONSE 这个内部枚举，一个字都不动。
             body = json.dumps(d, ensure_ascii=False)
@@ -1329,7 +1329,7 @@ def chat(messages, tools=None, conn=None, model=None, max_tokens=None):
 
 # ── ⭐ 「问战况」那一回合的**第 2 次请求**：不带更早的对话历史 ──────────────
 #
-# 用户 2026-10-09 拍板（先看 dump 取了证）：`pc_status`（战况）这条路，
+# （先看 dump 取了证）：`pc_status`（战况）这条路，
 # 她**第 1 次请求照旧看完整历史**（该有上下文，自己决定要不要查战况 ✓）；可
 # **查到数据之后再问一次**时，只许带「system（人设 + 场合）+ 当前那句 + 她的
 # `tool_calls` + `tool` 结果」——更早的那些 user/assistant 历史**一条都不许带**。
@@ -1343,7 +1343,7 @@ def chat(messages, tools=None, conn=None, model=None, max_tokens=None):
 #     它们的材料要跟对话上下文对得上，砍了反而答错（自检里有一条回归钉着它）；
 #   · 第 1 次请求**一个字都不动**（见 `run_turn`：第一次 `chat()` 用的还是原样的 messages）。
 #
-# ⚠️ 砍的位置 = **按本轮边界**（2026-10-30，A2/C-3 改的）：
+# ⚠️ 砍的位置 = **按本轮边界**：
 #    `agent._build()` 拼完这一轮之后把历史那一段的下标记在
 #    `ctx["_hist_range"] = (起点, 终点)`（半开区间，终点 = 快照那条的下标）——
 #    这里只删那一段，剩下的正好是「system + 快照 + 当前那句（+ 这一轮她自己的
@@ -1388,7 +1388,7 @@ def _trim_history_after_tool(messages, names, ctx=None):
         return 0
     if (ctx or {}).get("_hist_trimmed"):
         # 这一轮的历史已经剪过一次了 —— 再剪一次用的会是移位后的旧下标，
-        # 会把「快照 + 当前那句」也删掉（2026-10-30 修的既有 bug）。
+        # 会把「快照 + 当前那句」也删掉。
         return 0
     rng = (ctx or {}).get("_hist_range")
     if not rng:
@@ -1413,7 +1413,7 @@ def _trim_history_after_tool(messages, names, ctx=None):
         return 0
     cut = b - a
     del messages[a:b]
-    # ⚠️ 2026-10-30 修：剪完要记一个"已经剪过"的标记，同一轮第二次调 pc_status 时直接跳过。
+    # ⚠️ 修：剪完要记一个"已经剪过"的标记，同一轮第二次调 pc_status 时直接跳过。
     #    不记的话第二次还用旧下标 —— 下标已移位 → 会把「快照 + 当前那句」也删掉
     #    （配对仍合法，所以不报错、静默变傻）。
     #    ⛔ 不要动 `ctx["_hist_range"]`：它是拼装器写下的"历史原来在哪"，
@@ -1460,7 +1460,7 @@ def run_turn(messages, ctx, tools=None, max_rounds=None, conn=None):
     # 键 = (工具名, 规范化参数 JSON)；值 = 到这一批为止的次数。
     _call_seen = {}
     while True:
-        # ⚠️ 2026-10-30（`end_turn`）：每一步都**现算**一次目录（传 ctx）——
+        # ⚠️ （`end_turn`）：每一步都**现算**一次目录（传 ctx）——
         #    `say` 之后 `ctx["_sends"]` 变了，**下一步**才会多出收尾工具；
         #    触发词 / 随机接话 / 唤醒也按住 `ctx["_trigger"]` 现算。
         give_tools = (toolkit.schemas(ctx)
@@ -1525,7 +1525,7 @@ def run_turn(messages, ctx, tools=None, max_rounds=None, conn=None):
                         json.dumps(res, ensure_ascii=False)[:150], time.time() - t0))
             messages.append({"role": "tool", "tool_call_id": tc["id"],
                              "content": toolkit.result_text(name, res)})
-            # ── A4 重复调用检测（2026-10-30）────────────────────────────
+            # ── A4 重复调用检测────────────────────────────
             # 同一轮里「同工具 + 同参数」第 3 次出现 → 往消息里塞一条提醒。
             # ⚠️ 必须是**这一批 tool 消息之后**追加一条 `user`：插在 tool 之间会破坏
             #    tool_calls ↔ tool 的配对，DeepSeek 直接 400（原文见文件头）。
@@ -1539,7 +1539,7 @@ def run_turn(messages, ctx, tools=None, max_rounds=None, conn=None):
             _call_seen[_sig] = _n
             if _n == 3:
                 _repeats.append((name, _n))
-        # ⭐ 2026-10-30（`end_turn`）：这一批工具里她调了收尾工具 → **立刻结束这一轮**：
+        # ⭐ （`end_turn`）：这一批工具里她调了收尾工具 → **立刻结束这一轮**：
         #    不再请求模型、不再发任何字（这一批里 `say` 已经发出去的话照旧）。
         #    ⚠️ 她这条 assistant 消息里可能还写了文字（和 tool_calls 同一批）——
         #       按用户定的口径**不发**，只在日志里留一笔。
@@ -1550,7 +1550,7 @@ def run_turn(messages, ctx, tools=None, max_rounds=None, conn=None):
                         else "这条消息里没写别的字"))
             return "", called, ""
         # ⭐ 战况那条路：**续问（第 2 次请求）不再带更早的对话历史** ——
-        #    用户 2026-10-09 拍板；只在"这一轮调的工具全是 pc_status"时生效，
+        #    ；只在"这一轮调的工具全是 pc_status"时生效，
         #    别的工具（memory / search / …）照旧，理由与切法见上面 `PC_TRIM_TOOLS` 那段。
         _cut = _trim_history_after_tool(messages, names, ctx)
         if _cut:
@@ -1563,7 +1563,7 @@ def run_turn(messages, ctx, tools=None, max_rounds=None, conn=None):
                 "同一个工具（%s）、同一组参数，这一轮你已经调了 %d 次了，结果不会变。"
                 "换个参数，或者就用现在手里的东西把话说出来"
                 % (_rn, _rc))})
-        # ⭐ 2026-10-30（用户定）：轮次快用完时先提醒一次，用完了再塞一句【事实】收尾。
+        # ⭐ （用户定）：轮次快用完时先提醒一次，用完了再塞一句【事实】收尾。
         #    ⛔ 不写"别钻牛角尖"这类禁令 —— 只告诉她还剩多少、现在该干什么。
         if tool_rounds >= rounds - max(1, rounds // 10) and not _warned_rounds:
             _warned_rounds = True
@@ -1590,7 +1590,7 @@ def run_turn(messages, ctx, tools=None, max_rounds=None, conn=None):
 PROBE_MAX_TOKENS = 2000
 
 
-# ── 后台那些「轻量请求」（2026-10-30 加的 `llm.utility`）──────────────────
+# ── 后台那些「轻量请求」──────────────────
 #
 # 谁在用：**memory-keeper**（每记一条事实就跑一次）和**私聊自动压缩**（B3）。
 # 这两件事都只需要模型"按规矩吐一句话"，⛔ 不带她的性格、⛔ 不给她工具目录。

@@ -25,7 +25,7 @@ import time
 
 from . import base, clock, im, memory, napcat, persona, reminders, settings
 
-# ⚠️ 2026-10-30：这些数**只是默认值的引用 / 自检用**，运行时一律
+# ⚠️ 这些数**只是默认值的引用 / 自检用**，运行时一律
 #    `settings.get(...)` 现读（面板改完下一条消息就生效）。唯一真源在 settings.REGISTRY。
 MAX_KEEP = 2000                    # 环形缓冲：最多留多少条（≈300 KB）
 CACHE_TTL = 300                    # 查询结果缓存 5 分钟
@@ -228,7 +228,7 @@ def query(ctx, who_qq="", q="", after="", before="", count=""):
     """`history` 那个工具的实现。`who_qq` 由 toolkit 先解析好（认人只有一处实现）。"""
     sid = session(ctx)
     if not sid:
-        # ⚠️ 2026-10-30（用户裁决）：这里**不给任何一句话** —— 理论上走不到（每个 ctx
+        # ⚠️ （用户裁决）：这里**不给任何一句话** —— 理论上走不到（每个 ctx
         #    都带 key/群号/QQ），真要走到了就只回一个 `ok:false`，不编新台词。
         return {"ok": False}
     kind, gid = sid

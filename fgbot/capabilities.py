@@ -88,7 +88,7 @@ FORMAT_VERSION = 1
 NAME_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 # 工具名：模型那边能稳定填的形状（英文 / 数字 / 下划线，不能以数字开头）
 TOOL_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")
-# `- 名字：description` 里的那个冒号是**全角**的（用户 2026-10-31 逐字批的）
+# `- 名字：description` 里的那个冒号是**全角**的
 CATALOG_HEAD = "【技能目录】：你的额外技能，用skill工具读取"
 CATALOG_LINE = "- %s：%s"
 
@@ -1341,13 +1341,13 @@ def remove(name):
                                    % (n, "（备份也一起清掉）" if len(gone) > 1 else "")}
 
 
-# ── 从网址装 / 预检回执（2026-10-31，`package` 工具与面板共用）────────
+# ── 从网址装 / 预检回执────────
 #
 # 只用一处实现：`package` 工具（主人聊天里装包）和面板「从网址安装」走的是
 # **同一条**：下载 → 预检（六条 + 文件清单 / 大小 / sha256）→ 确认后才落进
 # `<数据目录>/capabilities/`。⛔ 别在工具里另写一份白名单 / 大小判断。
 #
-# 下载规则（用户 2026-10-31 逐字定的）：
+# 下载规则：
 #   · 白名单（含子域）：github / gitee / jsdelivr + 几个镜像站；
 #     另外 `capability.extraHosts` 可以加（面板 / `--set` 都能设）；
 #   · 最大 5 MB；重定向 ≤5 跳（每一跳都要过白名单）；
@@ -1356,7 +1356,7 @@ def remove(name):
 MAX_PACKAGE_BYTES = 5 * 1024 * 1024
 MAX_REDIRECTS = 5
 
-# 默认允许的下载域名（含子域）。镜像站是用户 2026-10-31 点名加的
+# 默认允许的下载域名（含子域）。镜像站是加的
 # （实测从开发机都不通 —— 所以下载失败要给一句人话 + 建议 codeload 直链）。
 DEFAULT_HOSTS = (
     "github.com", "codeload.github.com", "raw.githubusercontent.com",
@@ -1366,7 +1366,7 @@ DEFAULT_HOSTS = (
     "gh.llkk.cc", "mirror.ghproxy.com",
 )
 
-# 给模型 / 面板看的那几句（用户 2026-10-31 定的措辞）
+# 给模型 / 面板看的那几句
 ERR_OWNER = "只有主人能装。"
 ERR_SOURCE = "只允许从 github / gitee / jsdelivr 装。"
 ERR_BUILTIN = "自带示例包装在仓库里，删不掉（不想用就停用它）"

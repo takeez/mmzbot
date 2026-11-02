@@ -55,13 +55,13 @@ _POKE = {}           # qq -> 上次回戳的时间
 # 不能回 `{"ok":false}`：契约 B6 要的是 403，而且面板看到 403 会重新要 token。
 FORBIDDEN = object()
 
-# 「看共享令牌」那一组动作名（2026-10-03 加；面板上那个「🔑 看共享令牌」按钮）。
+# 「看共享令牌」那一组动作名。
 # ⚠️ **只有主人**能调（和 `user.*` 同一个口径，别人 FORBIDDEN → server 回 403 空正文）。
 # ⚠️ `server.py` 拿这张表决定**响应加不加 `Cache-Control: no-store`**
 #    （响应里带着凭据明文，绝不许被浏览器/中间层缓存）—— 两处共用这一份，别各写一套。
 TOKEN_SHOW_ACTIONS = ("token.show", "令牌", "看令牌", "共享令牌")
 
-# 「只有主人能调」的**控制面动作**（2026-10-05 加；用户拍板"需要只有我能调"）。
+# 「只有主人能调」的**控制面动作**。
 #
 # 为什么要有它：这些动作以前**本机 / 局域网任何一把有用户令牌的人都能调**
 # （公网那条路早就被 `server.PUBLIC_ACTIONS` 挡住了，局域网没有）：
@@ -87,14 +87,14 @@ OWNER_ONLY_ACTIONS = (
     "mem_name", "记忆称呼", "mem_person_add", "加人", "mem_person_del", "删人",
     "mode",
     "restart", "重启",
-    # 运行参数（2026-10-30）：改 settings.json 的覆盖值 / 全部恢复默认。
+    # 运行参数：改 settings.json 的覆盖值 / 全部恢复默认。
     "settings.save", "参数保存", "settings.reset", "参数恢复",
-    # 提供商 / 模型目录（2026-10-30，面板「她的大脑」「后台模型」两张卡）。
+    # 提供商 / 模型目录。
     # 能改 key、能切她的大脑 —— 和 add/use/del 同一档，只有主人能调。
     "providers.save", "providers.delete", "providers.activate",
     "providers.addmodels", "providers.delmodel", "providers.fetchmodels",
     "providers.utility",
-    # 设置页（2026-10-31）：改的是**部署配置本身**（她的 QQ / token / 群 /
+    # 设置页：改的是**部署配置本身**（她的 QQ / token / 群 /
     # NapCat 地址 / 人设正文），和 add/use/del 同一档 —— 只有主人能调。
     # ⚠️ `onboarding.probe` / `onboarding.groups` 是只读的（问 NapCat 要数据），
     #    但它们的结果也会进面板的检查表，干脆一起挡在主人这一层。
@@ -146,7 +146,7 @@ def handle(ctx, late=None):
         if not uid or uid == str(base.self_id()):
             return None                                  # 别理自己（防自问自答打转）
         if ctx.get("is_group"):
-            # 2026-10-04 用户要的「群管理」：**朋友把机器人邀请到别的群**时她收到了消息，
+            # 用户要的「群管理」：**朋友把机器人邀请到别的群**时她收到了消息，
             # 可用户根本不知道群号是多少 —— 所以这里先留一条痕（群号 + 群名 + 什么时候 +
             # 谁在说话），面板上列出来，他自己点"加入白名单"。
             # ⚠️ 这一句**必须在 `_in_scope` 前面**：不在名单里的群才需要记。
@@ -160,7 +160,7 @@ def handle(ctx, late=None):
         # 记下他的 QQ 昵称/群名片：面板上"没定称呼"的人就用它显示（以前只现取现用，
         # 结果面板里那几个人只能显示成一串 QQ 号）。只在变了的时候才写盘，见 memory.touch。
         # ⚠️ 从原始事件里取（ctx["evt"].sender），不劳 server.py 多塞两个字段。
-        # ⚠️ 2026-10-06（用户拍板）：**群名片按群存** —— 名片要连**群号**一起交下去，
+        # ⚠️ （）：**群名片按群存** —— 名片要连**群号**一起交下去，
         #    私聊（`group_id` 空）那边 `touch()` 一个字都不写名片。
         sender = (ctx.get("evt") or {}).get("sender") or {}
         memory.touch(uid, sender.get("nickname") or "", sender.get("card") or "",
@@ -252,7 +252,7 @@ def _think(ctx, addressed):
     text, called, err = llm.run_turn(msgs, ctx)
     if err:
         base.log("这一轮没答上来：%s" % err)
-        # 用户 2026-10-30 定：**只有超时**才说一句（别的错不吭声，免得瞎报）。
+        # 用户 定：**只有超时**才说一句（别的错不吭声，免得瞎报）。
         if "超时" in err or "掐断" in err:
             return _timeout_reply(ctx, err)
         return None
@@ -280,11 +280,11 @@ def _think(ctx, addressed):
         text = _second_chance(ctx, msgs, text, lies, extra)
 
     if not text:
-        # 她自己选择不说（end_turn / 模型直接留空）→ 不发 ✓（用户 2026-10-30 定的）
+        # 她自己选择不说（end_turn / 模型直接留空）→ 不发 ✓
         base.log("她选择不说话")
         return None
 
-    # ⚠️ 2026-10-04：这里**原来有一处硬截断** ——
+    # ⚠️ 这里**原来有一处硬截断** ——
     #       `cap = agent.maxGroupReplyChars`（800），超了就 `text[:cap] + "…"`，
     #       **多出来的字直接丢掉**。真机上真丢过：18:18:18 那条 1020 字的回复
     #       被截到 800（日志原文「群里这条太长了（1020 字），截到 800」），220 个字没了。
@@ -388,7 +388,7 @@ def _build(ctx, addressed):
        ⚠️ 技能目录那一条在 `_hist_range` **之外**（切历史时它留着，和 system 一样）。
     """
     msgs = [{"role": "system", "content": persona.system_prompt()}]
-    # ⭐ 2026-10-31（扩展包 / 知识锁）：**技能目录**是一条独立的 user 消息 ——
+    # ⭐ （扩展包 / 知识锁）：**技能目录**是一条独立的 user 消息 ——
     #    位置固定：system 之后、历史之前；只有至少一个技能可用时才发。
     #    ⚠️ 「内容变了就原地替换那一条」由 `capabilities.catalog_message(ctx)` 保证
     #       （按会话缓存同一个 dict，内容变了只改 content）—— 所以请求里永远只有一条，
@@ -398,7 +398,7 @@ def _build(ctx, addressed):
         msgs.append(_cat)
     hist = list(memory.render(ctx["key"], drop_last=True))     # 历史（当前这条要单独拼，可能要带图）
     _hist_at = 1 + (1 if _cat is not None else 0)
-    # ⭐ 2026-10-30（B1，用户批的第 13 条）：**群聊**先在历史之前告诉她一句
+    # ⭐ （B1，第 13 条）：**群聊**先在历史之前告诉她一句
     #    「你看到的是这个群最近 N 条消息」；私聊一个字都不加。
     #    ⚠️ 插在历史之前、system 之后 —— 位置固定、N 也固定（threadLimit 那段窗口），
     #       所以请求开头仍然逐字稳定（前缀缓存照吃）。
@@ -415,7 +415,7 @@ def _build(ctx, addressed):
     parts, note = images.load(refs) if refs else ([], "")
 
     # 引用（回复）里带过来的图和那句话：他引用了一条带图的老消息时，把那条里的
-    # 图**也挂到这一轮**、并附一句事实（用户 2026-09-30 逐字批的，动机见 images.py）。
+    # 图**也挂到这一轮**、并附一句事实。
     # ⚠️ 单独一条路：**图失败静默** —— 所以它不并进上面那个 `load()`（那个拿不到图
     #    会回一句「这条消息带了 N 张图…」）。
     # ⚠️ 顺序：他自己这条的图在前 → 那句「他引用的那条是…」→ 引用的那张图。
@@ -436,7 +436,7 @@ def _build(ctx, addressed):
     #    字一个没改 —— 就是以前拼在 system 末尾的那几行（`_occasion` 原样搬过来）。
     msgs.append({"role": "user", "content": _occasion(ctx, addressed, note, fnote)})
 
-    # ⚠️ 2026-10-06（用户拍板）：前缀格式 = **`名字: `** ——
+    # ⚠️ （）：前缀格式 = **`名字: `** ——
     #    「称呼 → 本群名片 → 昵称 → QQ 号」四级降级（`memory.display_name`），
     #    ⛔ 以前那截 `[群名片:X]` 整条去掉了。这里把当前事件的 `sender.card`
     #    传进去（当下那张最新），没带就退到记忆里**这个群**那张。
@@ -453,7 +453,7 @@ def _build(ctx, addressed):
     return msgs, {"ok": not note, "note": note}
 
 
-# 收尾工具（`end_turn`）的场合说明 —— **只在触发的这两种场合**加（用户 2026-10-30 逐字定稿）：
+# 收尾工具（`end_turn`）的场合说明 —— **只在触发的这两种场合**加：
 #   · 关键词触发 → 先告诉她是**哪个词**勾的、并不是有人在叫她（第 40 条，逐字；
 #     `%s` = 撞上的那个触发词本身，`_why` 记在 `ctx["_trigger_word"]`）；
 #   · 随机接话（1%）→ 小概率自动接话（第 41 条，逐字；⚠️ **结尾有句号**，别漏）。
@@ -476,7 +476,7 @@ def _occasion(ctx, addressed, img_note="", file_note=""):
        属于结构，不是附加消息。
     """
     n = clock.now()
-    # ⚠️ 2026-09-27 用户点名的：**不告诉她时间**（"需要时 llm 会自己调用工具"）——
+    # ⚠️ 的：**不告诉她时间**（"需要时 llm 会自己调用工具"）——
     #    要时间她会调 now 工具。所以这一段只剩"在哪儿、跟谁说话"。
     out = []
     if ctx.get("is_group"):
@@ -484,13 +484,13 @@ def _occasion(ctx, addressed, img_note="", file_note=""):
         #    跟场合没关系，她也不需要 —— 少一条就少分一点注意力。
         # 名字用 display_name（跟消息前缀同一套），另外**带上 QQ 号** ——
         # 这一行是"事实"，她真要调工具（memory 查谁、私聊谁）得知道用哪个号。
-        # 2026-09-27 用户改的：说话人**前缀里已经写了**（称呼/QQ + 群名片），
+        # ：说话人**前缀里已经写了**（称呼/QQ + 群名片），
         # 这句不再复述，只留"在哪个群"—— 而且带上群名（查一次、缓存在 group-names.json）。
         _gname = im.group_name(ctx.get("group_id"))
         out.append("在 QQ 群 %s（群名 %s）" % (ctx.get("group_id"), _gname) if _gname
                    else "在 QQ 群 %s" % ctx.get("group_id"))
     else:
-        # 2026-09-27 用户改的：这是你与<称呼或QQ号>的私聊（不再重复 QQ 号）
+        # ：这是你与<称呼或QQ号>的私聊（不再重复 QQ 号）
         out.append("这是你与 %s 的私聊"
                    % memory.display_name(ctx.get("user_id"), False))
     if img_note:
@@ -509,7 +509,7 @@ def _occasion(ctx, addressed, img_note="", file_note=""):
         # 第 41 条：没点她、1% 掷到了才算"随机接话"。
         # ⚠️ 用户给的新版**结尾有句号**（旧版没有），照新的写。
         out.append(CHIME_END_TURN_NOTE)
-    # ⭐ 2026-10-30（`plan`，用户批的第 10 条第 (3) 块）：只要她的计划里还有没做完的步骤，
+    # ⭐ （`plan`，第 10 条第 (3) 块）：只要她的计划里还有没做完的步骤，
     #    就把**整张表**附在快照末尾（「计划：<目标>」+ 每步一行「1. 内容 — 状态」）。
     #    ⛔ 没有计划 / 全部完成 → `plan.table()` 给空串，一个字都不加。
     #    ⚠️ 唤醒到点那一轮也走这里（`_on_due` 也调这个函数），所以那边天然也带整张表。
@@ -630,7 +630,7 @@ def _call(ctx):
 
 # ── 唤醒到点：把她叫醒，话由她说 ────────────────────────────────────
 
-# ⭐ 2026-10-30（A7′ / 第 43、44 条）：到点那一轮要把「设这个唤醒那一刻」的现场带上。
+# ⭐ （A7′ / 第 43、44 条）：到点那一轮要把「设这个唤醒那一刻」的现场带上。
 # 这两句是用户**逐字批的**，⛔ 一个字都不许改（第二句那个 `%s` 是摘要本身）。
 WAKE_HIST_HEAD = "以下是设这个唤醒之前的对话"
 WAKE_DIGEST_HEAD = "你当时查到的数据：%s"
@@ -729,7 +729,7 @@ def _on_due(rec):
     text, _ = guards.strip_monologue(text)
     text = guards.strip_echo(text)
     if not text:
-        # 2026-10-30（A5-5 / C-8）：以前这里会再逼一次（「……到点了必须说出去」）——
+        # （A5-5 / C-8）：以前这里会再逼一次（「……到点了必须说出去」）——
         # 那句连同"再逼一次"的整块**删掉了**：唤醒这一轮允许她用 `end_turn` 收尾
         # （`run_turn` 返回空串），不再逼（用户批的）。
         base.log("到点了，她选择不说（#%s）—— 这次就算了" % rec.get("id"))
@@ -788,7 +788,7 @@ def on_notice(evt):
 
 # ── request 事件（好友申请 / 群邀请）——**只入库排队，等面板裁决**────────
 #
-# 用户 2026-10-04 第二批点名改的（原话）：「可以运行加群的话，可以允许通过好友申请吗？
+# 用户 第二批点名改的（原话）：「可以运行加群的话，可以允许通过好友申请吗？
 # 不过不要自动通过，而是把申请放到网页面板上，我决定拒绝还是通过还是忽略。然后加群
 # 也改成那样。」—— 所以这一段的语义整个换了：
 #
@@ -946,13 +946,13 @@ def _announce(req, ident=None):
     if not (title or body or fallback or facts):
         return _ok("播报是空的（没给 facts / fallback / title / body）", False)
 
-    # ⚠️ 2026-09-27 用户定的材料格式（他自己写的，照着来）：
+    # ⚠️ 材料格式（他自己写的，照着来）：
     #    抬头一句 + **一条记录一行**（顺序照电脑给的，键名就是 站点/摸鱼时间/时间，
     #    不加任何多余的字、不做「应用/站点」的区分）。
-    # ⚠️ 2026-10-04（用户拍板「身份 = QQ」）：这个**值**改走 `who.display_name()`
+    # ⚠️ （「身份 = QQ」）：这个**值**改走 `who.display_name()`
     #    （**唯一一处显示名实现**：备注 → 称呼 → 昵称 → QQ 号）——
     #    按 token 认出来的那条记录 → 显示名。
-    # ⚠️ 2026-10-04（第四批「推送只认用户令牌」）：原来那条
+    # ⚠️ （第四批「推送只认用户令牌」）：原来那条
     #    **「认不出 QQ 就退回载荷里的 `人`」的兜底分支已经删掉**（死代码）——
     #    推送这条路进来的一定是 `users.json` 里某条记录（门禁在 server 层，
     #    见 `server.PUSH_ACTIONS`），那个分支永远不会走到。
@@ -960,7 +960,7 @@ def _announce(req, ident=None):
     #    下面那句指令里的 `who or "某人"` 是**用户写的原文**，一个字没动。
     who = ""
     if rec:
-        # ⚠️ 2026-10-06（用户拍板）：**播报材料也按"所在群"的名片** ——
+        # ⚠️ （）：**播报材料也按"所在群"的名片** ——
         #    四级降级「称呼 → 本群名片 → 昵称 → QQ 号」，⛔ 方括号那截去掉了。
         who = who_mod.display_name(rec, is_group=bool(gid), group_id=(gid or "")) or ""
     rows = facts.get("数据") if isinstance(facts.get("数据"), list) else None
@@ -986,13 +986,13 @@ def _announce(req, ident=None):
     ctx = {"key": key, "is_group": bool(gid), "group_id": gid, "user_id": uid or mention,
            "who": "电脑（PCStatus）", "text": "", "raw": "", "images": [],
            "message_id": None, "at": time.time()}
-    # ⭐ 2026-10-09（用户拍板）：播报是**一条独立请求** —— ⛔ 一条对话历史都不带。
+    # ⭐ （）：播报是**一条独立请求** —— ⛔ 一条对话历史都不带。
     #    从前的形状是 `[system] + 历史 + [材料/指令]`（`msgs.extend(memory.render(key))`），
     #    那段历史跟这次播报**毫无关系**，只会让她把群里的旧话扯进来（第 2 次请求那次
     #    真机事故就是这么来的）。播报要的只有两样：她是谁 + 这次电脑传上来的摸鱼事实。
     #    ⛔ 材料与指令**一个字都没动**（自检里逐字钉着它们）。
     msgs = [{"role": "system", "content": persona.system_prompt()}]
-    # 指令：用户 2026-09-27 的原话（"跟大家通报"的方式，不是通报给他本人）。
+    # 指令：用户 的原话（"跟大家通报"的方式，不是通报给他本人）。
     # ⚠️ 他明确要求**不要加"不想说就回某个词"** —— 他的原话里没有，别自己加。
     #    她要是真不说，回空就行：下面 not text 那个分支会当成"她决定不说"，
     #    回 ok:true 结束（群里安静）。播报这一轮**不带** `end_turn`（用户定的四种场合里
@@ -1015,7 +1015,7 @@ def _announce(req, ident=None):
         base.log("播报：这一轮没跑起来（%s）—— 回 ok:false，让电脑自己想办法" % err)
         return _ok("我这边没跑起来（%s），这条你们自己发吧" % err, False)
     if not text:
-        # ⚠️ 2026-09-27 关键语义：**她主动不说 = ok:true**（"这条我处理了，决定不说"）。
+        # ⚠️ 关键语义：**她主动不说 = ok:true**（"这条我处理了，决定不说"）。
         #    以前回 ok:false，导致电脑以为"她没接住"→ 拿模板补发进群 ✗
         #    （用户原话：「她不肯说肯定有原因」，所以群里就该安静）。
         #    ok:false 只留给**真失败**，见上面那个分支。
@@ -1023,7 +1023,7 @@ def _announce(req, ident=None):
         #      她真不说就是空文本。）
         base.log("播报：她自己决定不说 —— 回 ok:true（这条到此为止，别让电脑补发）")
         return _ok("她看到了，决定不说 —— 这条到此为止", True)
-    # ⚠️ 2026-10-04：这里**原来也有一处硬截断**，而且是**写死的 800**
+    # ⚠️ 这里**原来也有一处硬截断**，而且是**写死的 800**
     #    （不看 `maxGroupReplyChars` 配置，私聊那条播报也照样按 800 截）。和 `_think`
     #    一样把那两行删掉 —— 拆成几条、每条多大、两条之间停多久，全在 `im.send_long`
     #    那一处（读 config 的 `_split_cfg`）。这一段的其它逻辑一个字都没动。
@@ -1060,7 +1060,7 @@ def on_api(action, req, ident=None):
     is_owner = bool(ident.get("主人"))
     try:
         if a.startswith("capability.") or a in ("扩展", "扩展包"):
-            # ── 扩展包（2026-10-31）：面板「扩展」页那几颗按钮 ──
+            # ── 扩展包：面板「扩展」页那几颗按钮 ──
             #    装 / 卸 / 启用 / 停用 / 列 —— 改的是**这台机器上能跑什么代码**
             #    （包和主程序同权限），和 add/use/del 同一档：**只有主人能调**。
             #    具体实现（校验 / 备份 / 回滚 / state 文件）全在 `fgbot/capabilities.py`
@@ -1081,7 +1081,7 @@ def on_api(action, req, ident=None):
                 return FORBIDDEN
             return _user_api(a, req)
         if a.startswith("group.") or a in ("群", "群管理", "群名单"):
-            # ── 群管理（2026-10-04 加）：她**理哪些群**（白名单 + 「最近见过的群」）──
+            # ── 群管理：她**理哪些群**（白名单 + 「最近见过的群」）──
             #    口径和 user.* 一模一样：**只有主人能调**，别人 403 空正文。
             #    ⛔ 这一块一个字都不进给模型看的材料 —— 它只改"理不理这个群"。
             if not is_owner:
@@ -1091,7 +1091,7 @@ def on_api(action, req, ident=None):
             return _group_api(a, req)
         if a.startswith("request.") or a in ("申请", "申请列表", "待处理申请",
                                              "通过申请", "拒绝申请", "忽略申请", "恢复申请"):
-            # ── 待处理申请（2026-10-04 第二批加）：**好友申请 + 群邀请**排队等裁决 ──
+            # ── 待处理申请：**好友申请 + 群邀请**排队等裁决 ──
             #    口径和 user.* / group.* 一模一样：**只有主人能调**，别人 403 空正文
             #    （"同不同意加好友"这种事不该让朋友的电脑替他决定）。
             #    ⛔ 这一块一个字都不进给模型看的材料 —— 它只改"这条申请怎么办"。
@@ -1101,7 +1101,7 @@ def on_api(action, req, ident=None):
                 return FORBIDDEN
             return _request_api(a, req)
         if a in TOKEN_SHOW_ACTIONS:
-            # ── 看共享令牌（2026-10-03 加）：面板上那个「🔑 看共享令牌」点它 ──
+            # ── 看共享令牌：面板上那个「🔑 看共享令牌」点它 ──
             #    ⛔ 只有主人（和 user.* 同一个口径）；⛔ 值绝不进日志、绝不进 HTML；
             #    ⛔ 响应头由 server 那边加 `Cache-Control: no-store`（见 TOKEN_SHOW_ACTIONS）。
             if not is_owner:
@@ -1110,7 +1110,7 @@ def on_api(action, req, ident=None):
                 return FORBIDDEN
             return _token_show(ident)
 
-        # ── 控制面那些"改她自己的东西"的动作（2026-10-05 加）：**只有主人能调** ──
+        # ── 控制面那些"改她自己的东西"的动作：**只有主人能调** ──
         #    口径和上面 user.* / group.* / request.* / token.show 一模一样：不是主人 →
         #    `FORBIDDEN` → `server.py` 回 **403 空正文**。
         #    ⛔ 这里**只加闸**：下面那些分支的返回值、参数、动作名一个字都没动 ——
@@ -1126,7 +1126,7 @@ def on_api(action, req, ident=None):
             memory.reset()
             return _ok("对话记忆清空了 —— 她下一条消息当第一次见你们（称呼和提醒都还在）")
         if a.startswith("onboarding."):
-            # ── 设置页（2026-10-31）：一条龙把新部署的人配完 ──
+            # ── 设置页：一条龙把新部署的人配完 ──
             #    · save / probe / groups / persona 的**校验、落点、热生效**全在
             #      `fgbot/onboard.py` 一处实现（面板和命令行 `--set` 走的是它同一份）；
             #    · 这里只做主人闸（上面 OWNER_ONLY_ACTIONS 已经挡过）+ 转发；
@@ -1186,7 +1186,7 @@ def on_api(action, req, ident=None):
             return _ok("触发词已存成「%s」（下一条消息生效，不用重启）"
                        % ("、".join(clean) or "空"), bool(ok), triggers=clean)
         if a in ("settings.save", "参数保存"):
-            # ── 运行参数（2026-10-30）：面板「运行参数 / 高级参数」那两张卡 ──
+            # ── 运行参数：面板「运行参数 / 高级参数」那两张卡 ──
             #   · 只接受注册表里的键，别的**直接忽略**（用户定的口径）；
             #   · 先把所有值校验一遍，有一个不合法就**整批不存**（不写一半）；
             #   · 超出范围的值由 settings 钳制，并把「你填了 999，已按 20 存」带回去。
@@ -1312,7 +1312,7 @@ def _user_api(a, req):
        的那两个动作（另一处是邀请码）：导出那份**含密钥**，日志里只许留条数/字节数。
     """
     def rows():
-        # ⚠️ 2026-10-04：`fetch_nick=True` —— 面板那一份才允许**现取一次** QQ 昵称
+        # ⚠️ `fetch_nick=True` —— 面板那一份才允许**现取一次** QQ 昵称
         #    （"没有备注就显示称呼/昵称"，别只显示一串裸号）。取回来的昵称只在
         #    进程内缓存，**不落盘**（`who.fetch_nick`）。给模型看的材料一律不现取。
         out = users.panel_rows(base.public_url(), fetch_nick=True)
@@ -1320,7 +1320,7 @@ def _user_api(a, req):
             secs = statuscache.last_seen(r["id"])
             r["最后心跳"] = statuscache.ago_text(secs) if secs is not None else ""
             r["心跳新鲜"] = bool(secs is not None and secs <= statuscache.STALE_SECONDS)
-            # ⛔ 2026-10-06（用户拍板）：**不把设备当区分维度** —— 面板这一份
+            # ⛔ （）：**不把设备当区分维度** —— 面板这一份
             #    不再带 `电脑名` 了（心跳里那个名字只进日志，见 `statuscache.record`）。
         return out
 
@@ -1329,7 +1329,7 @@ def _user_api(a, req):
         return _ok("用户表：%s" % users.stats(), True,
                    users=rs, publicUrl=base.public_url(), 主人模式=bool(base.owner_mode()))
     if a in ("user.nick", "取昵称"):
-        # **加人表单里"填完 QQ 立刻把昵称显示出来给他核"**（用户 2026-10-04 点名要的）。
+        # **加人表单里"填完 QQ 立刻把昵称显示出来给他核"**。
         # 控制面动作：不进给她的材料、不新增任何一句台词；⛔ 日志里不写任何值。
         q = str(req.get("qq") or req.get("主人QQ") or "").strip()
         if not re.match(r"^\d{4,12}$", q):
@@ -1556,7 +1556,7 @@ def _people():
             # 她自己那一块永远拿不到"昵称"（她自己的消息她不收，见 handle 开头），
             # 气泡上就会变成一串光秃秃的 QQ 号 —— 这里补上她的名字。
             p["nick"] = p["nick"] or (persona.name() if persona else "MMZ")
-        # ⚠️ 2026-10-05 修掉的那颗雷：以前这里直接把**记忆那块**（形状是
+        # ⚠️ 修掉的那颗雷：以前这里直接把**记忆那块**（形状是
         #    `{"qq","name","nick","card","facts"…}`）丢给 `display_name()` —— 那函数
         #    认的是 `users.json` 的形状（拿 `主人QQ` 当 QQ 号），于是 QQ 号解析成空、
         #    四级兜底全落空，`显示名` **永远等于那串裸 QQ 号**（面板「记忆」页左边

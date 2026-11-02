@@ -50,12 +50,12 @@ def _identify_word(ctx, w):
     return str(qq or ""), why
 
 
-# 「认不出这个人」那一句 —— 2026-10-06 **逐字定稿**（他给了才写的），一个字都不许改。
+# 「认不出这个人」那一句 —— **逐字定稿**（他给了才写的），一个字都不许改。
 # ⚠️ 只有这一份字面（以前它内联在 `_target` 里）。
 _NOBODY = "没找到「%s」这个人 —— 让他起个称呼"
 
 # ⚠️ **重名**（同一个词 ≥2 个**不同 QQ** 命中同一档）时给模型的那句话 ——
-#    2026-10-06 **逐字定稿**（他给了才写的），⛔ 一个字都不许改（标点、那个破折号、
+#    **逐字定稿**（他给了才写的），⛔ 一个字都不许改（标点、那个破折号、
 #    空格都在内）。为什么不提 QQ：新设计里**她看不到 QQ 号**，更不该让她去问人要号 ——
 #    重名了就让那个人自己起个称呼。
 _AMBIGUOUS = "「%s」重名了，查不到 —— 让他起个称呼"
@@ -198,7 +198,7 @@ def t_recall(ctx, who="", ask=""):
     self_lookup = bool(w) and (w in _SELF or w == me)
     qq, rec, _self, why = _recall_who(ctx, who)
     if why == "ambiguous":
-        # **重名**（同一个词 ≥2 个不同 QQ）→ 一律不猜：回2026-10-06 逐字定稿那句。
+        # **重名**（同一个词 ≥2 个不同 QQ）→ 一律不猜：回逐字定稿那句。
         return {"ok": False, "error": _AMBIGUOUS % w}
     facts = [f for f in (rec.get("facts") or []) if isinstance(f, str) and f.strip()]
 
@@ -224,7 +224,7 @@ def t_recall(ctx, who="", ask=""):
     return _recall_shape(facts, query, qq)
 
 
-# `user_info` 的 `fields`：**宽松认"包含"**（2026-10-06 定的）——
+# `user_info` 的 `fields`：**宽松认"包含"**——
 # `称呼` ✓　`QQ` / `号` ✓　`昵称` ✓　`名片` / `群名片` ✓；**认不出的项忽略**。
 # 键名固定 `QQ` / `称呼` / `QQ昵称` / `本群名片`；⛔ **没有"设备/电脑"这一项**。
 _INFO_FIELDS = (("QQ", ("qq", "号")),
@@ -296,7 +296,7 @@ def t_memory(ctx, who="", ask="", text=""):
     qq, bad = _target(ctx, who)
     if not qq:
         return {"ok": False, "error": bad}
-    # ⭐ 管家先跑、再写（2026-10-30 修 P0）：以前是先 add 再 review，
+    # ⭐ 管家先跑、再写：以前是先 add 再 review，
     #    管家看到的列表里已经有这条新的 ✓ 它就把列表里那条当"重复"删掉 ✗
     #    结果新事实丢了、她还回用户"记下了" ✗ 现在顺序反过来：
     #      · 管家看到的是【旧列表 + 这条新的】✓ 不会重复 ✓
@@ -310,7 +310,7 @@ def t_memory(ctx, who="", ask="", text=""):
         base.log("管家没跑起来（这条按原样记下）：%r" % (e,))
     if keeper_added is not False and keeper_added is not None:
         # 管家这一趟**真的动过记忆**（哪怕只是删了旧的、没往「加」里写）。
-        # ⚠️ 2026-10-30 P2-1：以前写 `if keeper_added:` —— 只删不加时它返回 []，
+        # ⚠️ P2-1：以前写 `if keeper_added:` —— 只删不加时它返回 []，
         #    会被当成"什么都没发生" → 把「别记我住哪了」这种**删除请求**当成事实记下来 ✗
         #    现在按"是不是 False（没动）"判断，[] 也算动过 ✓
         explained = ("管家整理过了：%s" % "、".join(keeper_added[:3])) if keeper_added \
@@ -359,7 +359,7 @@ def t_history(ctx, who="", q="", after="", before="", count=""):
 
 
 
-# ── pc_status 搬走了（2026-10-31）──────────────────────────────────
+# ── pc_status 搬走了──────────────────────────────────
 #
 # `pc_status`（战况）不再是内置工具：它现在是**第一个示例包**
 # （`examples/packages/pc-status/`，默认不装；知识锁：读技能才解锁工具）。
@@ -372,13 +372,13 @@ _SET_ACTIONS = ("设", "设定", "定", "新", "新建", "加")
 _LIST_ACTIONS = ("列", "列表", "列一下", "看", "看看", "查看")
 _CANCEL_ACTIONS = ("取消", "撤", "撤销", "删", "删掉", "撤掉")
 
-# ── 唤醒「当时」的现场（2026-10-30，A7′ / 第 43、44 条）──────────────────
+# ── 唤醒「当时」的现场──────────────────
 #
 # 到点那一轮要像「那场对话的下一轮」：把**设唤醒那一刻**的对话、以及她当时查到的
 # 东西一起冻结进账本（`reminders.json` 的 `hist` / `digest`，都是可选字段）。
 # ⛔ 中间新聊的一律不带：这里取的是 `t_wake` 被调用那一刻的快照。
 # ⛔ `wake` 自己、`say`（那是说话，不算查东西）、`end_turn` 不进摘要。
-# ⚠️ 2026-10-30：这些数运行时一律 settings.get(...) 现读（面板能调）。
+# ⚠️ 这些数运行时一律 settings.get(...) 现读（面板能调）。
 #    常量留着当默认值引用 / 自检用；唯一真源在 settings.REGISTRY。
 WAKE_HIST_SEGS = 6              # 最近 6 段
 WAKE_HIST_CHARS = 1500          # 总长 ≤1500 字（从最新往回取，超了截断最早的）
@@ -616,7 +616,7 @@ def t_weather(ctx, city=""):
         # ⚠️ 这里**没有"默认城市"**了（用户点名去掉的）：他是哪儿人属于"关于他的信息"，
         #    该存在长期记忆库里，让她自己调 memory 那个工具查出来再传进来 ——
         #    而不是常驻在配置里。
-        # ⚠️ 2026-10-06（定稿）：失败话改成下面这句，一个字都不许改。
+        # ⚠️ （定稿）：失败话改成下面这句，一个字都不许改。
         return {"ok": False, "error": "没说哪个城市。要是他以前说过自己住哪，先查一下他的记忆。"}
     try:
         raw, _ = web.get("https://geocoding-api.open-meteo.com/v1/search?count=1&language=zh&name="
@@ -692,7 +692,7 @@ def t_send_private(ctx, text, who=""):
     text = (text or "").strip()
     if not text:
         return {"ok": False, "error": "没给内容"}
-    # ⚠️ 2026-10-04：这里**原来有一处 3000 字硬截断**
+    # ⚠️ 这里**原来有一处 3000 字硬截断**
     #    （`text = text[:3000] + "\n…（太长，截断了）"`）—— 用户拍板「干脆别截断，
     #    自动切自动发」，所以把那两行删掉。`im.send_private` 自己会按上限
     #    （群/私聊不同，见 config 的 agent 一节）拆成几条依次发，**一个字都不丢**。
@@ -741,10 +741,10 @@ def t_say(ctx, text, who=""):
     target = (who or "").strip()
     where = ""
     if target:
-        # ⚠️ 2026-09-27 踩过的坑：材料里写了"要发到群 123456789"，她就把这个**群号**填进了 to，
+        # ⚠️ 踩过的坑：材料里写了"要发到群 123456789"，她就把这个**群号**填进了 to，
         #    而这里原来只认人 → 走成 send_private_msg → NapCat 回「无法获取用户信息」✗。
         #    所以：数字先看是不是**群号**（当前群 / 她理的群名单），是就发群；否则当人。
-        # ⚠️ 2026-10-04（「群管理」那一批）：群名单**统一走 `groups.known()`**
+        # ⚠️ （「群管理」那一批）：群名单**统一走 `groups.known()`**
         #    （config ∪ 用户表 ∪ 面板加的 `groups.json`），这里不再自己读 config。
         groups_ = [str(g) for g in groups.known()]
         if ctx.get("group_id"):
@@ -759,12 +759,12 @@ def t_say(ctx, text, who=""):
         qq = target if target.isdigit() and len(target) >= 5 else ""
         why = ""
         if not qq:
-            # ⚠️ 2026-10-06（用户拍板）：这条弱路**切到统一认人**（`who.identify`）——
+            # ⚠️ （）：这条弱路**切到统一认人**（`who.identify`）——
             #    以前只认 `memory.find`（称呼/记忆内容），**昵称**和**本群名片**都不认，
             #    跟别的工具"同一个词两个结果"。`ctx` 照样传下去（认本群那张名片要用群号）。
             qq, why = _identify_word(ctx, target)
         if not qq:
-            # ⚠️ 2026-10-06（用户拍板）：**统一那两句** —— 撞名 → `_AMBIGUOUS`、
+            # ⚠️ （）：**统一那两句** —— 撞名 → `_AMBIGUOUS`、
             #    没找到 → `_NOBODY`。⛔ 它原来自己那句「不知道…的 QQ 号…」**整句删掉了**
             #    （连同里面那个早就改掉的参数名）。
             return {"ok": False,
@@ -835,7 +835,7 @@ def t_skill(ctx, name=""):
 # ⚠️ 条件出现的工具（不在常态目录里，由 `schemas(ctx)` 每步现算）：
 #   · `end_turn` —— 触发词 / 随机接话 / 唤醒到点 / 这一轮已经 say 过；
 #   · 扩展包的工具 —— 她 `skill(名字)` 读过那个技能之后才解锁（每次最多 6 个包）。
-# `pc_status`（战况）2026-10-31 搬进了示例包 `examples/packages/pc-status/`（默认不装）。
+# `pc_status`（战况）搬进了示例包 `examples/packages/pc-status/`（默认不装）。
 
 TOOLS = [
     {"name": "now", "fn": t_now, "desc": "看现在几点、今天几号、星期几。",
@@ -906,14 +906,14 @@ TOOLS = [
                 "who": ("string", "发给谁：【消息前缀】就是私聊他；留空=发在当前会话里", False)}},
 
     {"name": "skill", "fn": t_skill,
-     # ⚠️ 名字 / 说明 / 参数说明是2026-10-31 **逐字批的**，⛔ 一个字都不许改。
+     # ⚠️ 名字 / 说明 / 参数说明是**逐字批的**，⛔ 一个字都不许改。
      "desc": "读取一个技能的完整说明",
      "params": {"name": ("string", "【技能】名字")}},
 ]
 
 _BY_NAME = {t["name"]: t for t in TOOLS}
 
-# ── 条件出现的工具（2026-10-30，定稿）──────────────────────────
+# ── 条件出现的工具──────────────────────────
 #
 # `end_turn` **不在** `TOOLS` 里：常态目录是 `names()` 那 12 个（`TOOLS` 去掉
 # 条件出现的 `pc_status`），它只在下面四种场合出现
@@ -940,7 +940,7 @@ def _offer_end_turn(ctx):
 
 _BY_NAME[END_TURN["name"]] = END_TURN
 
-# ── 扩展包的工具（知识锁，2026-10-31）──────────────────────────────
+# ── 扩展包的工具──────────────────────────────
 #
 # 扩展包（`fgbot/capabilities.py`）声明了哪些工具，**不常驻**在目录里：
 #   ① 技能目录（一条独立的 user 消息，见 `agent._build`）告诉她"有这些技能"；
@@ -1072,6 +1072,6 @@ def result_text(name, res):
 
 # 工具结果塞进请求时最多留多少字（默认 6000；运行时 settings.get("toolkit.clipChars")）
 CLIP_CHARS = 6000
-# 只在**会给出长材料**的这三个工具上说这一句（2026-10-30 批的第 14 条）
+# 只在**会给出长材料**的这三个工具上说这一句
 CLIP_TOOLS = ("search", "read_url", "history")
 CLIP_NOTE = "（这条被截断了：内容太长，这里只是一部分）"

@@ -30,7 +30,7 @@ from . import base, images, im, napcat, store
 
 # 一轮最多认几个（和图片 MAX_IMAGES 同口径，防炸）
 MAX_FILES = 3
-# 单个文件上限（用户 2026-10-31 定：50 MB）
+# 单个文件上限
 MAX_BYTES = 50 * 1024 * 1024
 # 问 NapCat / 下载的超时（秒）
 TIMEOUT = 30
@@ -42,7 +42,7 @@ _PULLER = None
 
 _FILE_CQ = re.compile(r"\[CQ:file,([^\]]*)\]")
 
-# 给模型看的失败原因（用户 2026-10-31 要的三种：过期 / 取不到 / 太大）
+# 给模型看的失败原因
 _TOO_BIG = "文件太大了（超过 50 MB）"
 _EXPIRED = "文件过期了，让他重发一份"
 _NO_FILE = "拿不到这个文件"
@@ -279,7 +279,7 @@ def _ask_napcat(ref, ctx):
         url, path = _addr(data)
         return (url, path, "") if (url or path) else ("", "", _NO_FILE)
 
-    # ⚠️ 2026-10-31 真机踩到：NapCat 不同版本支持的接口不一样。
+    # ⚠️ 真机踩到：NapCat 不同版本支持的接口不一样。
     #    实测（QQ 3.2.20-40990 + NapCat 4.x）：
     #      get_group_file      → "不支持的Api"
     #      get_file            → 能用（file not found 是参数问题，接口在）

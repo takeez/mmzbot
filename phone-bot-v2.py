@@ -102,7 +102,7 @@ def _fake_png():
             + chunk(b"IDAT", zlib.compress(rows)) + chunk(b"IEND", b""))
 
 
-# ── 命令行：无头配置（2026-10-31）────────────────────────────────────
+# ── 命令行：无头配置────────────────────────────────────
 #
 # 给 agent / 脚本 / "照着说明装"的人用：**不碰文件、不开浏览器**也能配完。
 # ⚠️ 和面板「初始化」页**同一份实现**（`fgbot/onboard.py`）：
@@ -195,7 +195,7 @@ if __name__ == "__main__":
         sys.exit(cli_list_models(*(_lm + [None, None])[:2]))
     if "--init-config" in args:
         sys.exit(cli_init())
-    # ⚠️ 2026-10-31：以前不认识的参数会**一路走到 server.serve()** ——
+    # ⚠️ 以前不认识的参数会**一路走到 server.serve()** ——
     #    agent 打错一个词就"以为在初始化，其实把服务起来了" ✗
     _unknown = [a for a in args if a.startswith("-")]
     if _unknown:

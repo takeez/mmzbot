@@ -214,7 +214,7 @@ def cli_persona(path):
     return 0 if ok else 1
 
 
-# ── 扩展包（2026-10-31）：一键安装 / 校验 / 列表 / 卸载 ─────────────
+# ── 扩展包：一键安装 / 校验 / 列表 / 卸载 ─────────────
 #
 # 规则与运行时加载**同一份实现**（`fgbot/capabilities.py` 的 `validate()`）：
 #   · `--check-capability` 逐条打印六条规则的结果（只校验，一个文件都不落地）；

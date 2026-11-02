@@ -72,7 +72,7 @@ import time
 from . import base, napcat, settings, store
 
 MEMORY = "memory.json"            # ⚠️ 手机上的状态文件，deploy.py 的 NEVER 名单里有它
-# ⚠️ 2026-10-30：下面这些数改成运行时 settings.get(...) 现读；常量只留着当
+# ⚠️ 下面这些数改成运行时 settings.get(...) 现读；常量只留着当
 #    默认值引用 / 自检用。唯一真源在 settings.REGISTRY。
 MAX_KEEP = 120                    # 一条时间线在内存里最多留多少条（防长跑吃内存）
 DEFAULT_RENDER = 16               # 渲染进请求的历史条数（settings 的 llm.threadLimit）
@@ -83,7 +83,7 @@ MAX_FACTS = 30                    # 一个人最多记多少条记忆（满了�
 BACKUP_PREFIX = "memory-backup-"
 BACKUP_KEEP = 5
 
-# 私聊自动压缩（B3）：摘要套的那层壳 / 那次请求的正文 —— 用户 2026-10-30 逐字批的。
+# 私聊自动压缩（B3）：摘要套的那层壳 / 那次请求的正文 —— 用户 逐字批的。
 SUMMARY_SHELL = "<compacted-summary>\n%s\n</compacted-summary>"
 SUMMARY_BODY = """把下面这段对话压成不超过 3 条事实，每条一行、一句话；整段尽量不超过 300 字。不要解释
 
@@ -142,7 +142,7 @@ def _render_entries(entries, grp, gid, keep_n=False):
             continue
         # 前缀**现在现算**（称呼/昵称都可能刚改过），不存快照 ——
         # 但条目里那份 name 当兜底传进去（见 display_name 的说明）。
-        # ⚠️ 2026-10-06（用户拍板）：历史行**也按"所在群"那张名片** ——
+        # ⚠️ （）：历史行**也按"所在群"那张名片** ——
         #    历史消息都在同一个会话里，所以直接把**当前群号**传下去，
         #    前缀就走「称呼 → 本群名片 → 昵称 → QQ 号」那四级（⛔ 不再拼方括号那截）。
         line = "%s: %s" % (display_name(e.get("qq"), grp, e.get("name"), group_id=gid),
@@ -805,7 +805,7 @@ def touch(qq, nick="", card="", group_id=""):
         # ⚠️ 只更新**这次事件真的带来了值**的那个字段。
         #    旧写法一个事件同时覆盖两个字段 —— 私聊事件没有群名片，
         #    于是把存着的群名片抹成空：他私聊说一句，他在群里的前缀就从
-        #    `主人[群名片:某人的昵称]` 退化成光秃秃的 `主人`（2026-09-28 实测复现）。
+        #    `主人[群名片:某人的昵称]` 退化成光秃秃的 `主人`。
         changed = False
         if nick and nick != (rec.get("nick") or ""):
             rec["nick"] = nick

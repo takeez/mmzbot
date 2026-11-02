@@ -160,7 +160,7 @@ def update(key, objective="", steps=None):
         old = load(key)
         norm, notes = _norm_steps(steps)
         if not norm:
-            # 2026-10-30 逐字定稿（原来那句「步骤表里一条都没有」换掉了）
+            # 逐字定稿（原来那句「步骤表里一条都没有」换掉了）
             return {"ok": False, "error": "步骤表不能是空的"}
         if not obj:
             obj = old.get("objective") or ""            # 这次没给目标：沿用上一次那个
