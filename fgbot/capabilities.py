@@ -97,10 +97,10 @@ CATALOG_LINE = "- %s：%s"
 RULES = {
     1: "包名合法、SKILL.md 存在、frontmatter 有 name + description",
     2: "name 与文件夹名一致、description 不超过 %d 字" % MAX_DESC,
-    3: "tool.py 能被 import，且 NAME/DESC/PARAMS/run 齐全、类型对",
+    3: "tool.py 能被读出来，且 NAME/DESC/PARAMS/run 齐全、类型对",
     4: "工具名不撞主程序内置工具、不撞已装包的别的工具",
     5: "PARAMS 是合法 JSON Schema（type/properties/required 都在）",
-    6: "tool.py 里不出现 eval/exec/os.system（只警告，不拒）",
+    6: "tool.py 里不调用 eval/exec/os.system",
 }
 
 # ⑥ 只看这三样
