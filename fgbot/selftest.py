@@ -8421,9 +8421,19 @@ def run():
                                 'PARAMS = {"type": "object", "properties": {}, "required": []}\n'
                                 'def run(args, ctx):\n    return {"ok": bool(eval("1"))}\n')
             _r6 = capabilities.validate(_v6, folder_name="danger")
-            ok &= _ck(_r6["ok"] and _r6["rules"][5]["warn"],
-                      "扩展⑥⑥：eval( → 第 6 条**只警告不拒**（包照样能装）",
+            ok &= _ck(not _r6["ok"] and not _r6["rules"][5]["ok"],
+                      "扩展⑥⑥：真调 eval( → 第 6 条**拒绝**（默认不许装）",
                       _r6["rules"][5]["message"])
+            # 显式豁免：capability.allowUnsafe=true 时降级成警告
+            _cap_ctl = base.cfg().setdefault("capability", {})
+            _cap_ctl["allowUnsafe"] = True
+            try:
+                _r6b = capabilities.validate(_v6, folder_name="danger")
+                ok &= _ck(_r6b["ok"] and _r6b["rules"][5]["warn"],
+                          "扩展⑥⑥b：`capability.allowUnsafe=true` 时降成警告、照样能装",
+                          _r6b["rules"][5]["message"])
+            finally:
+                _cap_ctl.pop("allowUnsafe", None)
 
             # ── ⑦ 安装 / 覆盖备份 / 校验不过不落地 / 装完加载失败回滚 / 卸载 ──
             _src = _cap_write(_cap_scratch, "pkgone", "装进来的包",

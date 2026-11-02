@@ -63,7 +63,7 @@ KEYS = (
     "pcStatus.computerName",
     # 扩展包下载白名单的**额外**域名：默认那几个在 capabilities.DEFAULT_HOSTS
     "capability.extraHosts",
-    "capability.downloadProxy",
+    "capability.downloadProxy", "capability.allowUnsafe",
 )
 
 # 「最近一次收到 NapCat 上报」的时间（只活在内存里；重启就没了 —— 它只用来

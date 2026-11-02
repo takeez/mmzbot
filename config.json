@@ -125,7 +125,9 @@
     "extraHosts": [],
     "_extraHosts_说明": "字符串数组，只写域名（含子域），例如 [\"ghproxy.com\", \"mirror.example.com\"]。面板「扩展 → 额外允许域名」和 `--set capability.extraHosts=ghproxy.com,xxx.com` 都能改（写进 local-config.json）。",
     "downloadProxy": "",
-    "_downloadProxy_说明": "下载扩展包走哪个 HTTP 代理；空 = 直连。例如 http://127.0.0.1:7890。只支持 http/https（socks5 要额外依赖，不带）。"
+    "_downloadProxy_说明": "下载扩展包走哪个 HTTP 代理；空 = 直连。例如 http://127.0.0.1:7890。只支持 http/https（socks5 要额外依赖，不带）。",
+    "allowUnsafe": false,
+    "_allowUnsafe_说明": "扩展包里**真的调用** eval / exec / os.system 时许不许装（**默认 false**）。检测只看真实调用（注释和字符串不算）；确实需要就把这颗设成 true。"
   },
   "agent": {
     "name": "机魂小悦",

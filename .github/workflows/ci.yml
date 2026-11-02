@@ -24,6 +24,10 @@ jobs:
           pip install -r requirements.txt pytest
       - name: 语法检查
         run: python -m compileall -q phone-bot-v2.py fgbot capabilities examples tools deploy.py
+      - name: 静态检查（只跑致命规则）
+        run: |
+          pip install ruff
+          ruff check --select E9,F63,F7,F82 .
       - name: 自检（pytest：逐段用例）
         run: python -m pytest -q
       - name: 部署规则自检

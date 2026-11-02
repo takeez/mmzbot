@@ -244,6 +244,35 @@ def _body_of(text):
 
 # ── tool.py：import + 取定义 ────────────────────────────────────────
 
+def _danger_calls(src):
+    """tool.py 里**真的调用**了 eval / exec / os.system 吗（AST，看注释和字符串不算）。
+
+    ⚠️ 以前用正则扫全文：注释里写个 "eval(" 例子、报错话术里提一嘴，都会被当成危险调用。
+       现在只看 Call 节点 —— `eval(x)` / `exec(x)` / `os.system(x)` 才算。
+    """
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        return []
+    out = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        fn = node.func
+        if isinstance(fn, ast.Name) and fn.id in ("eval", "exec"):
+            out.append(fn.id + "()")
+        elif isinstance(fn, ast.Attribute) and fn.attr == "system":
+            base = fn.value
+            if isinstance(base, ast.Name) and base.id == "os":
+                out.append("os.system()")
+    return sorted(set(out))
+
+
+def _allow_unsafe():
+    """`capability.allowUnsafe`：真的要用 eval/exec 的包，由用户显式放行。"""
+    return (base.cfg().get("capability") or {}).get("allowUnsafe") is True
+
+
 def _static_tool(path):
     """静态读 tool.py：**不 import、不执行**对方任何一行代码。
 
@@ -543,13 +572,18 @@ def validate(root, folder_name=None, other_tools=None):
         if why:
             fail(5, "%s 的 PARAMS：%s" % (t["name"], why))
 
-    # ⑥ eval / exec / os.system（**只警告不拒**）
+    # ⑥ eval / exec / os.system：**真调用**才算（AST 判定，不看注释和字符串）
     src = _text(tool_py) if _is_file(tool_py) else ""
     if src:
-        hits = [label for rx, label in _DANGER if rx.search(src)]
+        hits = _danger_calls(src)
         if hits:
-            warn(6, "tool.py 里出现 %s —— 只警告不拒（装之前自己看一眼）"
-                     % " / ".join(hits))
+            if _allow_unsafe():
+                warn(6, "tool.py 里调用了 %s —— 已按 capability.allowUnsafe 放行"
+                         % " / ".join(hits))
+            else:
+                fail(6, "tool.py 里调用了 %s —— 这种包默认不许装"
+                        "（确实要装：把 capability.allowUnsafe 设成 true 再装）"
+                        % " / ".join(hits))
 
     info["rules"] = rules
     info["ok"] = all(r["ok"] for r in rules)
@@ -1374,7 +1408,8 @@ ERR_TOO_BIG_PKG = "包太大了（上限 5 MB）"
 ERR_NOT_ZIP = "只收 zip"
 ERR_DOWNLOAD = "下载失败 —— 换 codeload.github.com 的直链再试"
 ERR_TICKET = "预检过期了，重新从网址装一次"
-NEXT_STEP = "要装就再调一次，confirm=true"
+NEXT_STEP = ("要装就再调一次，confirm=true"
+             "（装完会执行一次这个包的代码，用来读出工具定义）")
 
 # 预检的临时票据（ticket -> {"src","temp","at"}）：确认安装时**不用重下**。
 _TICKETS = {}

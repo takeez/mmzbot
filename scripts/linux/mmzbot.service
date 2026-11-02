@@ -29,6 +29,13 @@ PrivateTmp=true
 ProtectSystem=full
 ProtectHome=read-only
 ReadWritePaths=/var/lib/mmzbot /var/log/mmzbot
+# 再加几条（都是"只收紧、不放宽"的；万一你的机器上起不来，把下面这几行删掉即可）
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+SystemCallFilter=@system-service
+SystemCallArchitectures=native
 
 [Install]
 WantedBy=multi-user.target
