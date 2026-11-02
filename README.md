@@ -82,9 +82,9 @@
 
 运行时循环、工具调用协议和请求组织方式参考了 [DeepSeek Harness（DSH）](https://www.deepseek.com/en/harness/)；Agent 的产品形态和工具组织参考了 [pi agent（pi-mono）](https://github.com/badlogic/pi-mono)。其余部分围绕 QQ 场景构建，包括群聊判断、知识锁、扩展包和管理面板。
 
-## 更新日志
+## 安全与更新
 
-版本改动见 [更新日志](CHANGELOG.md)。
+遇到安全问题请按 [安全说明](SECURITY.md) 的渠道报告；版本改动见 [更新日志](CHANGELOG.md)。
 
 ## 许可证
 

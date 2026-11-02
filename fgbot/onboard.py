@@ -413,11 +413,11 @@ def _memory_ready():
             if _iu.find_spec(n) is None]
     try:
         from . import embed
-        root = os.path.join(base.DATA_DIR, embed.SUBDIR)
-        files = [embed.ONNX_REL, embed.DATA_REL, "tokenizer.json"]
-        miss = [f for f in files if not os.path.isfile(os.path.join(root, f))]
-    except Exception:
-        miss = []
+    except ImportError:
+        return False, "缺 embed 模块"
+    root = embed.model_dir()
+    files = [embed.ONNX_REL, embed.DATA_REL, "tokenizer.json"]
+    miss = [f for f in files if not os.path.isfile(os.path.join(root, f))]
     if deps:
         return False, "缺 Python 依赖：" + "、".join(deps)
     if miss:

@@ -52,6 +52,7 @@ tools 末尾（不重排已有工具）；同时最多 6 个包，超了摘最�
 
 import base64
 import builtins
+import contextlib
 import hashlib
 import ast
 import importlib.util
@@ -1196,7 +1197,7 @@ def _ctx_json(ctx):
         v = ctx[k]
         if v is None or isinstance(v, (bool, int, float, str)):
             out[k] = v
-        elif isinstance(v, (list, tuple)):
+        elif isinstance(v, (builtins.list, tuple)):
             out[k] = [str(x)[:200] for x in v][:20]
         elif isinstance(v, dict):
             out[k] = {str(kk)[:40]: str(vv)[:200] for kk, vv in v.items()}
@@ -1205,12 +1206,35 @@ def _ctx_json(ctx):
     return out
 
 
-def _child_cwd():
-    """给子进程一个空的工作目录（别让 `open("config.json")` 这类相对路径读到仓库里的东西）。"""
+@contextlib.contextmanager
+def _child_sandbox():
+    """给子进程一个**独立**的空工作目录（用完删掉）；posix 上顺带设资源上限。
+
+    用独立目录而不是固定共享目录：否则上一个包留下的文件，下一个包能读到。
+    """
+    tmp = ""
+    kw = {}
     try:
-        p = os.path.join(tempfile.gettempdir(), "mmzbot-cap-run")
-        os.makedirs(p, exist_ok=True)
-        return p
+        tmp = tempfile.mkdtemp(prefix="mmzbot-cap-run-")
+        kw["cwd"] = tmp
+    except Exception:
+        kw["cwd"] = tempfile.gettempdir()
+    if os.name == "posix":
+        kw["start_new_session"] = True
+        _pre = _child_preexec()
+        if _pre is not None:
+            kw["preexec_fn"] = _pre
+    try:
+        yield kw
+    finally:
+        if tmp:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+
+def _child_cwd_ctx():
+    """run_isolated 用：每次一个新的空目录（调用方跑完自己删）。"""
+    try:
+        return tempfile.mkdtemp(prefix="mmzbot-cap-run-")
     except Exception:
         return tempfile.gettempdir()
 
@@ -1272,10 +1296,11 @@ AVAIL_TTL = 60.0
 def describe_tools(pkg_dir, timeout=30.0):
     """子进程里读**全部**工具定义；返回 (工具列表, 原因)。"""
     try:
-        p = subprocess.run(_runner_argv(["--dir", pkg_dir, "--describe"]),
-                           cwd=REPO_ROOT, env=_runner_env(), capture_output=True,
-                           text=True, encoding="utf-8", errors="replace",
-                           timeout=timeout)
+        with _child_sandbox() as _kw:
+            p = subprocess.run(_runner_argv(["--dir", pkg_dir, "--describe"]),
+                               env=_runner_env(), capture_output=True,
+                               text=True, encoding="utf-8", errors="replace",
+                               timeout=timeout, **_kw)
     except subprocess.TimeoutExpired:
         return None, "读取工具定义超时（包在 import 阶段卡住了）"
     for line in reversed((p.stdout or "").strip().splitlines()):
@@ -1321,10 +1346,11 @@ def available_isolated(pkg_dir, sig, ctx, timeout=15.0):
         return hit[0]
     payload = json.dumps({"ctx": _ctx_json(ctx)}, ensure_ascii=False)
     try:
-        p = subprocess.run(_runner_argv(["--dir", pkg_dir, "--available"]),
-                           cwd=REPO_ROOT, env=_runner_env(), input=payload,
-                           capture_output=True, text=True, encoding="utf-8",
-                           errors="replace", timeout=timeout)
+        with _child_sandbox() as _kw:
+                p = subprocess.run(_runner_argv(["--dir", pkg_dir, "--available"]),
+                                   env=_runner_env(), input=payload,
+                                   capture_output=True, text=True, encoding="utf-8",
+                                   errors="replace", timeout=timeout, **_kw)
         val = False
         for line in reversed((p.stdout or "").strip().splitlines()):
             try:
@@ -1345,10 +1371,11 @@ def available_isolated(pkg_dir, sig, ctx, timeout=15.0):
 def describe_isolated(pkg_dir, timeout=30.0):
     """在子进程里读工具定义（不执行工具）。返回 (tool_dict, None) 或 (None, 原因)。"""
     try:
-        p = subprocess.run(_runner_argv(["--dir", pkg_dir, "--describe"]),
-                           cwd=REPO_ROOT, env=_runner_env(), capture_output=True,
-                           text=True, encoding="utf-8", errors="replace",
-                           timeout=timeout)
+        with _child_sandbox() as _kw:
+            p = subprocess.run(_runner_argv(["--dir", pkg_dir, "--describe"]),
+                               env=_runner_env(), capture_output=True,
+                               text=True, encoding="utf-8", errors="replace",
+                               timeout=timeout, **_kw)
     except subprocess.TimeoutExpired:
         return None, "读取工具定义超时（包在 import 阶段卡住了）"
     out = (p.stdout or "").strip().splitlines()
@@ -1376,7 +1403,7 @@ def run_isolated(pkg_dir, tool_name, args, ctx, timeout=None):
         if _pre is not None:
             kw["preexec_fn"] = _pre             # 内存 / CPU / 进程数上限
     p = subprocess.Popen(_runner_argv(["--dir", pkg_dir, "--tool", tool_name]),
-                         cwd=_child_cwd(), env=_runner_env(),
+                         cwd=_child_cwd_ctx(), env=_runner_env(),
                          stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE, text=True,
                          encoding="utf-8", errors="replace", **kw)

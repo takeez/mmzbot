@@ -2870,7 +2870,9 @@ function drawCapabilities(){
     bits.push(c.builtin ? "仓库自带" : "装的");
     if (c.provenance && c.provenance["来源"]) {
       var pv = c.provenance;
-      bits.push("来源 " + String(pv["来源"]).replace(/^.*[\\/]/, "").slice(0, 40));
+      var org = String(pv["来源"]);
+      if (!/^https?:\/\//i.test(org)) org = org.replace(/^.*[\\/]/, "");
+      bits.push("来源 " + org.slice(0, 72));
       if (pv.sha256) bits.push("sha256 " + String(pv.sha256).slice(0, 12));
       if (pv["装的时间"]) bits.push(String(pv["装的时间"]));
     }
