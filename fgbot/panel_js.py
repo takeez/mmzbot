@@ -1437,7 +1437,7 @@ function knownGroups(){
   return out;
 }
 /* ── 用户管理：QQ 号填完**立刻把昵称取出来给他核** ────────────────
-   用户 2026-10-04 点名要的（"这是填内容不会出错的关键：填错当场能看出来"）。
+   用户 2026-10-04 （"这是填内容不会出错的关键：填错当场能看出来"）。
    走控制面动作 `user.nick`（只有主人能调；值只在响应里，⛔ 不拼进页面、不进日志）。 */
 function bindQQLookup(el){
   var box = fieldBox(el), out = box ? box.querySelector(".fnote") : null;

@@ -57,7 +57,7 @@ def cli_check():
     """`--check`：把「能不能跑」那张表打到终端（和面板 H 块同一套逻辑）。
 
     ⚠️ 先**真去问一次 NapCat**：以前只看内存里的时间戳，独立进程永远 ✗，
-       于是「退出码 0」根本拿不到（2026-10-31 文档验收时发现）。
+       于是「退出码 0」根本拿不到。
     """
     from fgbot import onboard
     _ok, _why = onboard.probe_napcat()
@@ -97,7 +97,7 @@ def cli_init():
 def cli_list_models(base=None, key=None):
     """`--list-models [地址] [密钥]`：问那家 API 有哪些模型，列 id。
 
-    ⚠ 2026-11-01 加：用户往往不知道一把 key 能用哪些模型、有几档思考强度。
+    ⚠ 加：用户往往不知道一把 key 能用哪些模型、有几档思考强度。
        agent 拿到 key 后应该**先列出来再问用户选哪个**，别自己编一个模型名。
        地址/密钥不给就用配置里现在那套（llm.baseUrl / llm.apiKey）。
     """

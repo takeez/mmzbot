@@ -291,7 +291,7 @@ def _key_from_file(cfg):
 
     ⚠️ 不能用 store.path() —— 那是"她的状态"目录，自检时会指到临时目录，
        于是自检里读不到 key（真机上两者是同一个目录，本地才会露出来）。
-    ⚠️ 数据目录可配之后（2026-10-31），这里用 `base.existing_or_data()`：
+    ⚠️ 数据目录可配之后，这里用 `base.existing_or_data()`
        **先数据目录、再代码目录**。仍然是"跟 config.json 一个目录"，
        只是那个目录不再写死成代码所在目录。
     """
@@ -347,7 +347,7 @@ def runtime_del(key):
 def effort_now(doc=None):
     """现在的思考强度。返回 `(值, 从哪来)`。
 
-    顺序（用户 2026-10-30 拍板：**手机改的 > 面板 > config.json > high**，
+    顺序（：**手机改的 > 面板 > config.json > high**
     只是"面板"那一层从 settings.json 搬到了 `llm-apis.txt` 的 `active.effort`）：
       ① `active.effort` + `active.effortFrom`（面板 / App 都写这里）
       ② 老 `runtime.json` 的 `reasoningEffort`（升级前 App 写过的值，只兜底）
@@ -436,7 +436,7 @@ def _conn_for(d, provider_id, model_id, effort, effort_from):
 def sync_from_config():
     """config 里的 `llm.baseUrl/model/apiKey` 有值、而 `llm-apis.txt` 还没选过家 → 登记成一家并激活。
 
-    ⚠ 2026-11-02：以前这两套是分开的（面板看一套、真正跑的又是另一套）——
+    ⚠ 以前这两套是分开的（面板看一套、真正跑的又是另一套）——
       现在统一成一份：config 里填了什么，面板里就能看到什么，能切探多家多模型。
     已经选过家就不动（用户在面板里手选的优先）。
     返回：可能被改过的 `apis_doc()`。
@@ -937,12 +937,12 @@ def _payload(messages, tools, conn, model=None, max_tokens=None):
 def _one_request(payload, conn):
     """一次 HTTP。返回解码后的 JSON。异常一律翻成 LlmError。
 
-    ═══ 两层超时，别混（2026-10-02 查实的坑）═══
+    ═══ 两层超时，别混═══
 
     · `conn["timeout"]`（config 的 `timeoutSeconds`，120 秒）是 **socket 级**的，
       走的是 `urlopen(timeout=…)` → **每一次 recv** 的上限，**不是这次请求的总时长**。
       连接只在"滴血"（隔一会儿来一个字节、永远凑不满 body）时，每来一个字节就重置一次
-      —— 120 秒**永远不触发**，人就能挂 15 分钟（2026-10-02 那三条 901 秒的请求就是这样，
+      —— 120 秒**永远不触发**，人就能挂 15 分钟（那三条 901 秒的请求就是这样
       日志里 0 条超时记录；实验见 `_WallDeadline`）。
     · `conn["wallSeconds"]`（`wallTimeoutSeconds`，默认 150 秒）是**总时长（wall-clock）上限**：
       从发请求那一刻起算，到了就掐断、按"被总时长掐断"报错。
@@ -1225,7 +1225,7 @@ def _dump(payload, conn, response=None, error=""):
 def _post(payload, conn):
     """带重试的请求（DSH normal mode 的口径，见文件开头）。
 
-    ⚠️ **超时要能查**（2026-10-02 那次查不回来的教训）：
+    ⚠️ **超时要能查**
        · 总时长掐断 → 日志里明写"被总时长掐断"，而且**走重试**；
        · 单次 recv 超时 → 仍然不重试（见文件开头）；
        · `timeoutSeconds` 那份 config 是 socket 级的上限（每次 recv），
@@ -1338,7 +1338,7 @@ def chat(messages, tools=None, conn=None, model=None, max_tokens=None):
 # 真机上出过事：群里八竿子打不着的旧话被这第 2 次扯进来，把「张三」说的话安到了
 # 「王五」头上。砍掉之后她只看数据 + 当前这一句。
 #
-# ⛔ **只对 `pc_status` 这么做**（用户点名只砍这一个）：
+# ⛔ **只对 `pc_status` 这么做**
 #   · 同一轮里**只要还混着别的工具**（`memory` / `search` / …）就**照旧带历史** ——
 #     它们的材料要跟对话上下文对得上，砍了反而答错（自检里有一条回归钉着它）；
 #   · 第 1 次请求**一个字都不动**（见 `run_turn`：第一次 `chat()` 用的还是原样的 messages）。
@@ -1608,7 +1608,7 @@ UTILITY_MAX_TOKENS = 800
 def utility_conn():
     """后台轻量请求用的连接参数（管家 / 私聊压缩）。
 
-    2026-10-30 起读 `llm-apis.txt` 的 `utility`：
+    起读 `llm-apis.txt` 的 `utility`
       · `inherit: true`（默认）= 跟主模型那套一样；
       · `inherit: false` = 用 `provider` / `model` / `effort` 这三个覆盖。
     ⚠️ 主配置把思考整个关了（`llm.thinking: disabled`）时，后台也不许偷偷开回来。

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""`memory(ask=…)` 那条路（工具名 2026-10-06 从 `recall` 改成 `memory`）：**只把最像的几条**取出来。
+"""`memory(ask=…)` 那条路：**只把最像的几条**取出来。
 
 一次调用的全流程：
 

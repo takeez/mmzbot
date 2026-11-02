@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """时间：**一律走这里**拿"现在"，别直接 `datetime.now()`。
 
-这一层现在只是 `base` 的薄壳 —— 真正的时区算法在 `base.py`（2026-10-31 重做）：
+这一层现在只是 `base` 的薄壳 —— 真正的时区算法在 `base.py`
 
   · **不依赖 tzdata**：本地墙上时间 = UTC + 偏移；偏移从 `MMZBOT_UTC_OFFSET` /
     `MMZBOT_TZ` 固定偏移表 / 平台本地时区（`time.localtime` + `time.timezone`/

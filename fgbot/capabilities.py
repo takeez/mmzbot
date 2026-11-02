@@ -102,7 +102,7 @@ RULES = {
     6: "tool.py 里不出现 eval/exec/os.system（只警告，不拒）",
 }
 
-# ⑥ 只看这三样（docs 点名的那几个；别的"危险"写法不在这儿做道德审查）
+# ⑥ 只看这三样
 _DANGER = (
     (re.compile(r"(?<![\w.$])eval\s*\("), "eval("),
     (re.compile(r"(?<![\w.$])exec\s*\("), "exec("),
@@ -129,7 +129,7 @@ def data_root():
 def builtin_root():
     """仓库自带的包放哪（跟着代码走，只读；`capabilities/pack-manager/` 就是它）。
 
-    ⚠️ 2026-10-31（示例外置化）：`pc-status` 搬去了 `examples/packages/`，不再在这儿；
+    ⚠️ （示例外置化）：`pc-status` 搬去了 `examples/packages/`，不再在这儿；
         `capabilities/` 下 `_` 开头的（`_template`）加载器直接跳过。
     """
     return os.path.join(base.CODE_DIR, "capabilities")
@@ -247,7 +247,7 @@ def _body_of(text):
 def _static_tool(path):
     """静态读 tool.py：**不 import、不执行**对方任何一行代码。
 
-    ⚠️ 2026-11-02：以前校验第③条就是 `import` 对方的 tool.py —— "校验"这个动作本身
+    ⚠️ 以前校验第③条就是 `import` 对方的 tool.py —— "校验"这个动作本身
       就在执行别人的代码（装一个包 = RCE 两次）。现在只用 ast 看定义：
       模块级常量（NAME/DESC/PARAMS 等）必须是字面量才认，函数只看名字。
       真正运行时还是要 import（那是用户点了"启用"之后的事）。
@@ -601,7 +601,7 @@ class Cap(object):
 
     @property
     def status(self):
-        """面板 / CLI 那一列（用户 2026-10-31 定的三种）。"""
+        """面板 / CLI 那一列。"""
         if not self.ok:
             return "校验失败：第 %d 条" % self.error_rule
         if self.name in disabled():
@@ -1004,7 +1004,7 @@ def note_tool_list(ctx, names):
 def catalog_text():
     """技能目录的正文（**没有可用技能时返回空串**）。
 
-    逐字形状（用户 2026-10-31 批的）：
+    原样形状
 
         <system-reminder>
         【技能目录】：你的额外技能，用skill工具读取
@@ -1050,7 +1050,7 @@ def catalog_message(ctx):
 def skill_body(name):
     """读技能要回给她的东西：`<skill_content name="…">` 包着 SKILL.md 正文原文。
 
-    停用的 / 校验失败的 / 不存在的 → `None`（调用方回那句逐字的 error）。
+    停用的 / 校验失败的 / 不存在的 → `None`（调用方回那句原样的 error）。
     """
     n = str(name or "").strip()
     if not n or n in disabled():
@@ -1586,7 +1586,7 @@ def _sha256_dir(root):
 def inspect(src):
     """**预检**一个包（zip / 目录）→ 回执 dict（⛔ 不落地到 capabilities/）。
 
-    回执就是用户 2026-10-31 点名要的那几项：
+    回执就是那几项
         包名 / 一句话 / 会新增的工具 / 文件清单 / 大小 / sha256 /
         六条校验结果 / 下一步
     """

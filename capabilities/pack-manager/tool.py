@@ -7,7 +7,7 @@
 **一处都不重写**，全部走 `fgbot.capabilities`（`--install-capability` 和面板
 「扩展」页用的是同一份实现）。
 
-规则（用户 2026-10-31 定的）：
+规则
 
   · `available(ctx)` = **说话的人是主人**（用户表 `主人: true` 那条的 `主人QQ`）；
     不是主人 → 这个工具根本不进她的工具目录；真被派发到也回「只有主人能装。」
@@ -20,7 +20,7 @@
     `capability.extraHosts`；最大 5 MB；重定向 ≤5 跳；⛔ 不带 cookie / 凭据；只收 zip。
 
 ⚠️ 工具返回里的中文键 / 那几句 error 是**给模型看的文本**（改这些文字要先问维护者）：
-   `capabilities.ERR_*` 与 `NEXT_STEP` 都是用户 2026-10-31 逐字定的，别改。
+   `capabilities.ERR_*` 与 `NEXT_STEP` 都是用户 原样定的，别改。
 """
 
 import os

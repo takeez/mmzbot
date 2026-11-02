@@ -8,7 +8,7 @@ NapCat 的 `get_group_msg_history` / `get_friend_msg_history`。
    ⛔ **不落盘**：结果只活在这份进程内存里 —— 重启即失，手机上不留任何文件。
    ✓ 内存里一个 2000 条的环形缓冲（≈300 KB），同一段话不重复问 NapCat；
    ✓ 查询结果缓存 5 分钟（同样的条件连着问，不再打接口）；
-   ✓ 默认只查最近 **7 天**（再往前手机上一次要好几秒，用户拍板先限 7 天）；
+   ✓ 默认只查最近 **7 天**；
    ✓ 一次最多 **100 条**；**每人每小时最多 20 次**（防她一个人把 NapCat 问穿）。
 
 时间怎么认：`reminders.parse_when(..., past=True)` —— **过去模式**，⛔ 将来那套没动。
@@ -217,7 +217,7 @@ def _name(e, is_group, gid):
 
 
 def _line(e, is_group, gid):
-    """一条记录给她的那一行：`2026-10-30 12:34 张三: 你好`。"""
+    """一条记录给她的那一行：`12:34 张三: 你好`。"""
     return "%s %s: %s" % (clock.at(e["at"]).strftime("%Y-%m-%d %H:%M"),
                           _name(e, is_group, gid), e["text"])
 

@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 """公网入口的两道闸：**非重放校验**（时间戳 + nonce）与**失败限流**。
 
-契约（逐字照做）：
-  · `PCStatus\给手机那边的规格-多电脑接入.md` §6「重放保护」（建议口径）；
-  · `给PCStatus的答复.md` **C1/C2/C3/C4/C5**（我们自己第一批答复里定死的六条细节）；
+契约（原样照做）：
+  · 契约里的重放保护口径；
+  · 契约 **C1/C2/C3/C4/C5**（我们自己第一批答复里定死的六条细节）；
   · （历史决定）（窗口 **±120 秒**、nonce **小写 hex ≥32 字符**）；
   · 历史讨论 §11 / §12（429 口径、±120 秒不变）。
 
@@ -97,7 +97,7 @@ def sign_sha256(token, body, ts=None, nonce=None):
 
 
 def new_nonce():
-    """≥16 字节随机的小写 hex（C2 点名 `secrets.token_hex(16)` 这种来源）。"""
+    """≥16 字节随机的小写 hex（C2 `secrets.token_hex(16)` 这种来源）。"""
     import secrets
     return secrets.token_hex(16)
 

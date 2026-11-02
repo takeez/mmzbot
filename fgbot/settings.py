@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """运行参数注册表：**一张表 + 三层取值**（面板改过 > config.json > 默认值）。
 
-为什么要这一层（2026-10-30 用户拍板）：
+为什么要这一层
   · 以前这些数散在各个 `.py` 里（`MAX_KEEP = 2000`、`maxToolRounds or 50` …），
     想调一个就得改代码、重新部署；
   · 现在它们只有**一个真源**：本文件的 `REGISTRY`。代码一律 `settings.get(...)`
@@ -10,7 +10,7 @@
   · 面板改的值**不写 config.json**（那份是部署事实，deploy 会覆盖），
     而是写 `settings.json`（手机上的状态，deploy 的 NEVER 名单里有它）。
 
-三层优先级（用户 2026-10-30 定）：
+三层优先级
     settings.json 里的 overrides  >  base.cfg()（config.json + local-config.json）
     >  REGISTRY[key]["default"]
 

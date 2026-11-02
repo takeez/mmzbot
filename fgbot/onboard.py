@@ -15,11 +15,11 @@
    读的时候由 `base._deep_merge()` 逐层叠在 `config.json` 上 —— 所以改一个键不会把
    同一节的兄弟键（token / groups / control）顶掉。
 
-⛔ **token / key 永远不回明文**：`snapshot()` 里 token 只有 `****`（或者空串），
+⛔ **token / key 永远不回明文**：`snapshot()` 里 token 只有 ``（或者空串）
    真值只经 `token.show` 那条（只有主人能调、响应带 no-store）。
 ⛔ 这个模块**不拼给模型看的任何材料** —— 它只改部署配置和行为开关。
 
-⚠️ 与 `settings.json` 的关系（2026-10-30 那层「运行参数」）：`agent.maxGroupReplyChars` /
+⚠️ 与 `settings.json` 的关系：`agent.maxGroupReplyChars` /
    `agent.maxPrivateReplyChars` 也在 `settings.REGISTRY` 里，而 settings 的优先级高于
    config（面板改过的值 > config.json > 默认）。这里写完 local-config 后会**把这两个键的
    settings 覆盖删掉**，否则用户在这儿填的数会被旧覆盖值压住（"存了不生效"）。
@@ -275,7 +275,7 @@ def _set_path(d, path, val):
 def probe_napcat(timeout=4):
     """真去问一次 NapCat（`get_login_info`），成了就把时间戳记上。
 
-    ⚠️ 2026-10-31：`--check` 以前只看内存里的时间戳 → **独立进程永远是 ✗** ✗
+    ⚠️ `--check` 以前只看内存里的时间戳 → **独立进程永远是 ✗** ✗
        导致 CLI 拿不到退出码 0（面板里点「测一下」才行）。现在 CLI 先真探一次 ✓
     """
     import urllib.request as _u

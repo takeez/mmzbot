@@ -6,7 +6,7 @@
   · NapCat 出站（send_group / send_private / poke）—— 她说话，走 127.0.0.1:3000
   · 电脑转发（forward_to_pc / pc_alive）—— 「状态」「说明」要电脑的数据时走这条路
 
-═══ 太长怎么办：**自动拆成几条依次发**（2026-10-04 用户拍板）═══
+═══ 太长怎么办：**自动拆成几条依次发**═══
 
 以前是硬截断（超出的丢掉、末尾补「…」）—— 真机上真丢过话（1020 字截到 800）。
 现在 `send_group` / `send_private` 都走 `send_long`：按上限拆开、**依次发**、
@@ -50,7 +50,7 @@ def _napcat_raw(endpoint, payload, timeout=20, retry=True, kind="send"):
        以前只有前者，而它**把响应正文丢了** —— `group_name()` 于是把「失败原因」
        当成 JSON 正文去解析，拿到空串、静默返回空群名（踩过，见 `group_name`）。
 
-    `kind`（2026-09-30 加，**只管日志措辞**）：`"send"` = 发送，`"query"` = 查询。
+    `kind`：`"send"` = 发送，`"query"` = 查询。
     ⚠️ 以前查询失败也打「NapCat 报发送失败」—— 查个消息不存在，日志里却写着
        "发送失败"，排查时能把人带沟里（实测就踩了：`get_msg` 报"消息不存在"，
        日志读起来像她的消息没发出去）。查询就是查询，措辞分开，一个字的正文都不变。
@@ -231,7 +231,7 @@ def _private_one(user_id, text, faces=None, reply_to=None):
 def _split_cfg(kind):
     """拆条这件事的三个数：(每条上限, 两条之间停几秒, 兜底最多几条)。
 
-    ⚠️ **群和私聊可以不一样**（用户 2026-10-04 允许的）：
+    ⚠️ **群和私聊可以不一样**
        群里有别人看着，上限小一点（防刷屏，原值 800 → 现在 1200）；
        私聊只有她俩，原本**根本没有上限**，现在给 1500 ——
        用户明确要求"别调成无限"，所以给一个宽松但有限的值。
@@ -254,7 +254,7 @@ def _split_cfg(kind):
 
 
 def _cq_clean(text, faces=None):
-    """把模型写出来的 CQ 码收拾干净（2026-10-30）。
+    """把模型写出来的 CQ 码收拾干净。
 
     她偶尔会照上下文写出 `[CQ:face,id=319]`（那是 QQ 表情码）：
       · `face` → 真当成表情段发出去（`faces` 走现有那条路）
@@ -281,7 +281,7 @@ def _cq_clean(text, faces=None):
 
     out = m_cq.sub(_one, text)
     # 用户 别的 CQ 码直接剥掉，**不记日志**（日志留给真问题）
-    # ⚠️ 只在"整条被剥空"时才返回空串；别 strip 尾部空白（拆条要逐字拼回去）
+    # ⚠️ 只在"整条被剥空"时才返回空串；别 strip 尾部空白（拆条要原样拼回去）
     if not out.strip() and ids:
         out = ""
     return out, ids
@@ -353,11 +353,11 @@ def poke(group_id, user_id):
 def set_group_add_request(flag, approve=True, sub_type="invite", reason=""):
     """同意 / 拒绝一条**加群请求**（OneBot 的 `set_group_add_request`）。
 
-    ⚠️ 为什么要有它（2026-10-04 查实）：NapCat **没有**「自动同意群邀请」这种开关，
+    ⚠️ 为什么要有它：NapCat **没有**「自动同意群邀请」这种开关
        它只做两件事 —— 把事件转发过来 + 提供这个**被动 API**。所以同不同意得我们自己调。
 
     ⚠️ **调用方只有一处**：`reqs.approve / reqs.reject` —— 也就是**用户在网页面板上
-       点了「通过 / 拒绝」**才调（2026-10-04 第二批改的：以前是收到邀请就自动同意，
+       点了「通过 / 拒绝」**才调（第二批改的：以前是收到邀请就自动同意
        现在群里那条邀请**进面板排队等用户裁决**，见 `fgbot/reqs.py`）。
 
     ⚠️ `sub_type` **必须跟事件对上**：`"invite"` = 被拉进群（我们的场景），
@@ -379,7 +379,7 @@ def set_group_add_request(flag, approve=True, sub_type="invite", reason=""):
 def set_friend_add_request(flag, approve=True, remark=""):
     """同意 / 拒绝一条**加好友请求**（OneBot 的 `set_friend_add_request`）。
 
-    ⚠️ 参数名按 **NapCat 的 schema** 核过（2026-10-04，见公开的 tool schema：
+    ⚠️ 参数名按 **NapCat 的 schema** 核过（见公开的 tool schema
        `flag` / `approve` / `remark`）：⛔ **没有 `reason`** —— 好友这条接口
        **不带"拒绝理由"**（群那条才有）。所以面板上用户填的原因发不出去，
        只能记在本地 `requests.json` 里、并在 `reqs._decide` 里如实写明。
@@ -474,7 +474,7 @@ def _discover_pc(port):
     base.log("找到电脑了：%s（原配置 %s）" % (host, base.cfg().get("pc", {}).get("url")))
     # ⚠️ 这里原来还有一行 `base.save_pc_url(...)`，把找到的地址落进
     #    `pc-address.txt`。全仓库 grep 过 —— 那个文件**只被写、从来没被读回来**
-    #    （重启就丢 = 死代码），用户拍板选 (b)：**删掉写点，让这个文件彻底消失**。
+    #    （重启就丢 = 死代码），选 (b)：**删掉写点，让这个文件彻底消失**。
     #    ⚠️ **扫描逻辑本身保留**（这一段一个字没动）：找到的那一次照样用，
     #       只是不再"记住"它 —— 下次连不上还是照规矩再扫一遍。
     return host
@@ -492,7 +492,7 @@ def group_name(group_id):
        所以：进程内缓存 + 落盘缓存（store，跟 runtime.json 一个待遇 —— deploy 不覆盖），
        每个群每次进程只问一次；失败也记下"试过了"，不再重试（别给它加负担）。
 
-    ⚠️ 这里踩过一个**静默失效**的坑（2026-09-28 修）：
+    ⚠️ 这里踩过一个**静默失效**的坑
        原先写的是 `ok, body = _napcat_post(...)` 然后把 `body` 当 JSON 解析 ——
        可 `_napcat_post` 的第二个位置是**失败原因**（'retcode'/'network'），
        成功时是**空串**，它**根本不回响应正文**。于是：
@@ -607,7 +607,7 @@ def forward_to_pc(raw_body):
     契约 §6.2 坑 2 要的双向重放保护）。电脑那边的桥两套都认，照抄最稳。
 
     返回 `(ok, 电脑回的正文)`：
-      · 新版的电脑会回一段 JSON（战况的事实），她拿它自己组织语言 —— 用户点名要的
+      · 新版的电脑会回一段 JSON（战况的事实），她拿它自己组织语言 ——
         "电脑只给程序化的事实，措辞由模型来"；
       · 旧版的电脑只回 `204 No Content`（正文空）→ 那就是"它收下了但没给数据"，
         上层会让她照实说查不到，不再石沉大海。

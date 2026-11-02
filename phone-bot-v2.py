@@ -11,7 +11,7 @@
     python3 phone-bot-v2.py --set k=v …  无头配置（给 agent / 脚本用；和面板同一份校验）
     python3 phone-bot-v2.py --persona-file F   把人设正文从文件写进去（尖括号注释不动）
 
-═══ 无头配置（2026-10-31，用户定的部署目标）═══
+═══ 无头配置═══
 
 `--set` 和面板「初始化」页走的是**同一条路**（`fgbot/onboard.py` 的 `save()`）：
 同一个校验、同一个落点（`local-config.json`，deploy 永不覆盖）、同样**立刻生效**。

@@ -13,7 +13,7 @@ deploy 又把**暂存目录整个搬进正式目录**，于是「没人按按钮
     llm-apis.txt     手机 App 或网页面板里配的几家 API
     control.txt      手机上的 ctl 脚本写的「重置对话」请求
     status-cache.json 电脑发来的心跳缓存（status.push）：每位用户一条最新 + 收到时间
-                     （2026-10-03 第三批加的；`fgbot/statuscache.py` 在写，90 分钟算过期）
+
 
 ⚠️ 这些是「手机上的状态」，不是代码。任何时候都不要把它们当成可以重新生成的东西。
 """

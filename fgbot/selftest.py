@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """离线自检：不联网、不发消息、不写正式目录。
 
-从 phone-bot-v2.py 里搬出来的（2026-11-02）；`--selftest` 仍然照旧可用。
+从 phone-bot-v2.py 里搬出来的；`--selftest` 仍然照旧可用。
 """
 import io
 import json
@@ -268,7 +268,7 @@ def run():
     def legacy_set(qq, card):
         """自检用：往记忆里塞**历史残留**的那个单字段 `card`。
 
-        ⚠️ 2026-10-06 起 `memory.touch()` 自己**既不读也不写**它了（群名片改成
+        ⚠️ 起 `memory.touch()` 自己**既不读也不写**它了（群名片改成
            `cards[群号]`）。所以"显示/认人都不许读老 card"这条断言得**手工**把它塞回去 ——
            不然测的是一份根本没写进去的字段。
         """
@@ -490,7 +490,7 @@ def run():
         c_at = mk("你好")
         c_at["raw"] = "[CQ:at,qq=%s] 你好" % base.self_id()
         ok &= _ck(agent._addressed(c_at) is True,
-                  "剥 CQ 只动'给她看的文本'：点名判断照样成立（它判在 raw 上）")
+                  "剥 CQ 只动'给她看的文本'：判断照样成立（它判在 raw 上）")
 
         occ = agent._occasion(mk("MMZ", uid=10001), True)
         ok &= _ck(("住在杭州" not in occ) and ("咖啡" not in occ),
@@ -692,7 +692,7 @@ def run():
             web._open = dead_open
             r = web.search("自检 全挂")
             ok &= _ck(r == {"ok": False, "error": web.QF_FAIL},
-                      "三个源全挂 → 还是原来那句失败话术（逐字）", str(r)[:44])
+                      "三个源全挂 → 还是原来那句失败话术（原样）", str(r)[:44])
 
             # ② 有 key + 千帆返回缺字段 → 不崩，静默回退老路，日志里留一行
             web._open = rss_open
@@ -713,7 +713,7 @@ def run():
             ok &= _ck(r.get("engine") == "必应RSS",
                       "千帆 401 → 回退老路（不崩）", str(r)[:40])
 
-            # ④ 正常一次：形状逐字对（答案截 1200、摘要截 300、来源 5 条、Bearer 头）
+            # ④ 正常一次：形状逐一比对（答案截 1200、摘要截 300、来源 5 条、Bearer 头）
             refs = [{"id": i, "title": "标题%d" % i, "url": "https://e.com/%d" % i,
                      "website": "站点%d" % i, "date": "2026-09-28",
                      "content": "内容" * 400, "snippet": "短的%d" % i} for i in range(8)]
@@ -752,7 +752,7 @@ def run():
             web.set_transport(fake_qf(200, {"choices": [{"message": {"content": "  "}}],
                                             "references": []}))
             ok &= _ck(web.search("自检 全空") == {"ok": False, "error": web.QF_FAIL},
-                      "千帆两者都空 → 失败话术（逐字）")
+                      "千帆两者都空 → 失败话术（原样）")
             ok &= _ck(web._key() == "自检假key", "key 读一次就缓存（进程内）")
         finally:
             web._open = real_open
@@ -814,7 +814,7 @@ def run():
                   "图真的进了请求（base64 解出来和原图逐字节相同）", "%d 字节" % len(png))
         sysm = [m for m in pl.get("messages") or [] if m.get("role") == "system"]
         ok &= _ck(len(sysm) == 1 and sysm[0]["content"] == persona.system_prompt(),
-                  "整份提示词**只发一次**（一条 system，**逐字** = persona.system_prompt()）",
+                  "整份提示词**只发一次**（一条 system，**原样** = persona.system_prompt()）",
                   "%d 条 system" % len(sysm))
         # A2：system 在**最前面**；场合事实单独一条 user 快照，
         # 排在历史之后、他原话之前。
@@ -829,7 +829,7 @@ def run():
                   "A2 场合事实走**单独一条 user 快照**（在历史之后、他原话之前）",
                   str(_snap6.get("content"))[:40])
         ok &= _ck(not any("刚说话的是" in str(m.get("content")) for m in sysm),
-                  "场合里不再重复说话人（用户点名去掉的）")
+                  "场合里不再重复说话人（用户去掉的）")
         ok &= _ck(sum(1 for m in pl.get("messages") or []
                       if m.get("role") == "assistant" and
                       str(m.get("content") or "").startswith(("MMZ", "MMZBOT"))) == 0,
@@ -868,7 +868,7 @@ def run():
         try:
             got, why = images._one({"file": "AABB.jpg", "id": "", "url": "https://x/y"})
             ok &= _ck(got is None and why == "下载失败（HTTPError）",
-                      "两条都挂 → 给模型的那句**逐字不变**（还是「下载失败（HTTPError）」）",
+                      "两条都挂 → 给模型的那句**保持不变**（还是「下载失败（HTTPError）」）",
                       repr(why))
             logtxt = open(base.LOG_PATH, encoding="utf-8").read() \
                 if os.path.isfile(base.LOG_PATH) else ""
@@ -1157,7 +1157,7 @@ def run():
 
         # 判活：固定一句、不经过模型
         # ⚠️ 那句台词是**配置值**（`agent.pingReply`），公开模板里留空 = 走兜底的「在呀。」。
-        #    所以这里**自己钉一个值**再断言逐字相等 —— 不再依赖某台机器上的私有配置。
+        #    所以这里**自己钉一个值**再断言完全相等 —— 不再依赖某台机器上的私有配置。
         seen.clear()
         _ping_keep = (base.cfg().get("agent") or {}).get("pingReply")
         try:
@@ -1193,11 +1193,11 @@ def run():
                       "④ 老记录 → 到点那一轮只有 system + 快照 + 到点那段（不炸、不多一条）",
                       " ".join(_wroles))
             ok &= _ck(bool(wake) and wake[0].get("content") == persona.system_prompt(),
-                      "唤醒轮的 system **逐字** = persona.system_prompt()")
+                      "唤醒轮的 system **原样** = persona.system_prompt()")
             _wake_txt = wake[-1].get("content") if len(wake) > 2 else ""
             ok &= _ck(_wake_txt == ("<system-reminder>\n你被唤醒功能唤醒起来执行任务："
                                     "「喝水」（当前会话）\n</system-reminder>"),
-                      "到点那段**逐字**（第 6 条）", repr(_wake_txt))
+                      "到点那段**原样**（第 6 条）", repr(_wake_txt))
             _hist_txt = [m.get("content") for m in remembered
                          if isinstance(m.get("content"), str) and m.get("content")]
             ok &= _ck(not any(h in json.dumps(wake, ensure_ascii=False) for h in _hist_txt),
@@ -1285,7 +1285,7 @@ def run():
             _wj = json.dumps(_wm, ensure_ascii=False)
             ok &= _ck(len(_wm) > 1 and _wr[0] == "system"
                       and _wr[1] == "user" and _wc[1] == "以下是设这个唤醒之前的对话",
-                      "② 第 1 条 system、第 2 条 = 「以下是设这个唤醒之前的对话」（逐字）",
+                      "② 第 1 条 system、第 2 条 = 「以下是设这个唤醒之前的对话」（原样）",
                       "%s ｜ %r" % (" ".join(_wr[:2]), _wc[1] if len(_wc) > 1 else ""))
             ok &= _ck([m.get("content") for m in _wm[2:8]] == _shot and _wr[2:8]
                       == [agent._hist_role(x) for x in _shot],
@@ -1293,7 +1293,7 @@ def run():
                       json.dumps(_wc[2:8], ensure_ascii=False)[:90])
             ok &= _ck(len(_wm) == 11 and _wr[8] == "user"
                       and _wc[8] == "你当时查到的数据：" + _wdg,
-                      "② 第 9 条 = 「你当时查到的数据：…」**逐字**", repr(_wc[8] if len(_wc) > 8 else ""))
+                      "② 第 9 条 = 「你当时查到的数据：…」**原样**", repr(_wc[8] if len(_wc) > 8 else ""))
             ok &= _ck(len(_wm) == 11 and _wc[9] == _exp_occ
                       and _wc[10] == reminders.wake_note(_wkrec),
                       "② 最后两条 = 快照 + 到点那段（跟原来一个字都不差）",
@@ -1303,7 +1303,7 @@ def run():
                       "⑤ 冻结的对话里**没有**「设完之后」的新消息")
             ok &= _ck(agent.WAKE_HIST_HEAD == "以下是设这个唤醒之前的对话"
                       and agent.WAKE_DIGEST_HEAD == "你当时查到的数据：%s",
-                      "⑥ 这两句新文本**逐字**（第 43 / 44 条）")
+                      "⑥ 这两句新文本**原样**（第 43 / 44 条）")
             # ③ digest 为空（有 hist、这一轮没调工具）→ 那一条 user 消息不出现
             _wk3 = ("g", 515152)
             memory.reset([_wk3])
@@ -1401,7 +1401,7 @@ def run():
                       "播报：电脑递事实 → 她发得出去", str((out_b or {}).get("message"))[:30])
             ok &= _ck("摸上了" in json.dumps(sent[-1][1], ensure_ascii=False),
                       "播报：发出去的是**她组织的话**，不是电脑那份模板")
-            # 用户点名的：材料 = 抬头 + 一条记录一行（键名 = 站点/持续时长/开始时间），别的什么都不加
+            # 的：材料 = 抬头 + 一条记录一行（键名 = 站点/持续时长/开始时间），别的什么都不加
             pl2 = json.dumps(seen.get("payload") or {}, ensure_ascii=False)
             ok &= _ck(all(x in pl2 for x in ("站点", "持续时长", "开始时间", "B 站", "2 分 0 秒", "15:52"))
                       and "摸鱼时间" not in pl2,
@@ -1423,7 +1423,7 @@ def run():
                     last_u = _m["content"]
                     break
             ok &= _ck("不想说" not in last_u and "end_turn" not in last_u,
-                      "播报：指令里**没有**「不想说」/「end_turn」（用户点名的；"
+                      "播报：指令里**没有**「不想说」/「end_turn」（用户的；"
                       "播报这一轮也不给收尾工具）",
                       last_u.split("\n")[-1][:60])
             ok &= _ck("电脑上的 PCStatus 刚拦到" not in pl2 and "不 @" not in pl2,
@@ -1459,9 +1459,9 @@ def run():
                       "播报：就算电脑传了 mention 也不 @ 人")
 
             # ⚠️ （第三批）：电脑的播报载荷**顶层**多了一个 `UTC偏移`（`±HH:mm`、
-            #    **不进 `facts`**，见 `规格-多电脑接入.md` §4.1 与 `历史讨论.md` §6.1）。
+            #    **不进 `facts`**，见 契约）。
             #    这里钉死"多这一个键**一个字都不进材料**"：同一份 facts 跑两遍（带 / 不带），
-            #    把发给模型的**最后那条 user 指令**（= 抬头 + 记录 + 指令）抓出来逐字比。
+            #    把发给模型的**最后那条 user 指令**（= 抬头 + 记录 + 指令）抓出来逐一比。
             #    ⚠️ 只比那一条 —— 历史（memory.render）每一轮本来就会变，那不是材料。
             #    ⚠️ **必须待在上面那个 `_napcat_post` 假桩里**（出了这一节就是真发送，
             #       会往 QQ 里真发一条 —— 踩过，别挪出去）。
@@ -1515,7 +1515,7 @@ def run():
                       json.dumps(sent[-1][1], ensure_ascii=False)[:60] if sent else "没发出去")
 
             # ── ⑤ 材料里"谁在摸鱼"那个**值**：走 `who.display_name`（备注 → 称呼 → 昵称 → QQ）──
-            #    拍板：只换"值从哪来"，⛔ 模板/字段名一个字不动。
+            #：只换"值从哪来"，⛔ 模板/字段名一个字不动。
             #    ⚠️ 必须待在这个 `_napcat_post` 假桩里（出了这一节就是真往 QQ 发）。
             _o5, _m5, _r5 = users.add("", "10005", "", "⑤ 自检用")
             ok &= _ck(_o5, "⑤ 播报「谁」：先发一条**没备注**的记录（自检用）", _m5)
@@ -1539,7 +1539,7 @@ def run():
                   "播报：没给收件人会被拒（不乱发）")
 
         # ── 战况（pc_status）：**所有人（包括主人）一律走电脑发来的心跳缓存** ──
-        #    拍板：「我的实时就不用了，真的做到所有人都一样」——
+        #：「我的实时就不用了，真的做到所有人都一样」——
         #    于是「空 who = 主人那台 + 局域网直连（实时）」那整条路**没有任何入口**了。
         #    ⛔ 这一段全程离线，而且把直连那两个函数换成**一调就炸**的桩：
         #       任何一条 pc_status 路径只要还碰它们，自检当场就红（也顺便钉住"自检不联网"）。
@@ -1608,7 +1608,7 @@ def run():
                       and _pc_who.get("description") == _pc_who_want
                       and _pc_who.get("type") == "string"
                       and (_pc_tool["params"].get("required") or []) == [],
-                      "战况⑦：desc / params **逐字未变**（用户批过的那两句，"
+                      "战况⑦：desc / params **没有变化**（用户批过的那两句，"
                       "`who` 还是可选 string）", repr(_pc_who))
 
             # 先造两条记录：一个**非主人**（朋友甲）、一个**主人**
@@ -1682,12 +1682,12 @@ def run():
                       "战况：**有记录、没心跳** → 原来那句（2026-10-03 定的）",
                       json.dumps(_pc_rn2, ensure_ascii=False))
 
-            # 说话人**没登记过** → 逐字定稿的那一句（只有这一档用它）
+            # 说话人**没登记过** →的那一句（只有这一档用它）
             _pc_rg = toolkit.call("pc_status", {}, mk("状态", uid=_PC_STRANGER_QQ))
             ok &= _ck(_pc_rg.get("ok") is False
                       and _pc_rg.get("error") == "问话的这个人还没登记过电脑 —— 拿不到数据"
                       and "电脑不在线" not in _pc_rg,
-                      "战况：说话人**没登记过** → 用户给的那句话（逐字；形状 = 只有 ok/error）",
+                      "战况：说话人**没登记过** → 用户给的那句话（原样；形状 = 只有 ok/error）",
                       json.dumps(_pc_rg, ensure_ascii=False))
             ok &= _ck(toolkit.call("pc_status", {"who": "自己"}, mk("状态", uid=_PC_STRANGER_QQ))
                       .get("error") == "问话的这个人还没登记过电脑 —— 拿不到数据",
@@ -1711,9 +1711,9 @@ def run():
 
         # ── 第三批：电脑的心跳（`status.push`）→ status-cache.json → 战况的备用材料 ──
         #    契约 = PCStatus《给手机那边的规格-多电脑接入.md》§4.1「⭐ 出站心跳 status.push」。
-        #    这里钉的是拍板的那几件：接住（**200、不是 501**）、
+        #    这里钉的是的那几件：接住（**200、不是 501**）
         #    落盘（含收到时间 + 上报时段 + 机器可读 时段）、
-        #    直连优先、以及那几句**逐字不许动**的材料。
+        #    直连优先、以及那几句**原样不许动**的材料。
         #    ⭐ 过期判定改成**只看日期**（`computer_day()`）—— 这一段跟着改。
         from fgbot import statuscache
 
@@ -1760,7 +1760,7 @@ def run():
         _out = statuscache.material(_yent, now=_ts(2026, 9, 28, 20, 0))
         ok &= _ck(_out == {"ok": False,
                            "error": "他这会儿不在上报时段（工作日 09:00-18:00）"},
-                  "战况（缓存）：**跨天** + 不在他的上报时段 → 那句原话（逐字）",
+                  "战况（缓存）：**跨天** + 不在他的上报时段 → 那句原话（原样）",
                   json.dumps(_out, ensure_ascii=False))
         _fr = statuscache.material(_ent, now=_MON + 23)
         ok &= _ck(_fr.get("ok") is True and _fr.get("日期") == "09-28"
@@ -1779,7 +1779,7 @@ def run():
                   "战况（缓存）：当天 + 超 90 分钟 → **照旧给数据**（⭐ 当天永不过期）",
                   json.dumps(_st, ensure_ascii=False))
 
-        # 老的过期线（90 分钟）：`fresh()` **作为独立函数照旧**（用户点名"可以留着"），
+        # 老的过期线（90 分钟）：`fresh()` **作为独立函数照旧**
         # 但正式路径（`material()`）**再也不走它** —— 正好 90:00 那一秒的行为一个样。
         ok &= _ck(statuscache.fresh(_ent, now=_MON + 5400)
                   and "数据时间" in statuscache.material(_ent, now=_MON + 5400),
@@ -1918,7 +1918,7 @@ def run():
         #       正式路径再也不走它；老那条 90 分钟的线（`STALE_SECONDS` / `fresh()`）照旧留着。
         #    全程离线打桩：只递条目进 `material()` / 只碰临时目录，不联网、不发消息。
         print()
-        print("    ── ⭐ 当天的战况永不过期（2026-10-09 拍板）──")
+        print("    ── ⭐ 当天的战况永不过期（2026-10-09 ）──")
         ok &= _ck(statuscache.computer_day(_HB, now=_MON) == "09-28",
                   "当天①：「他那台今天」= 载荷里 `日期` 的写法（北京 +08:00 / 切换点 04:00）",
                   "算出来 = %s" % statuscache.computer_day(_HB, now=_MON))
@@ -1943,15 +1943,15 @@ def run():
                   and _o1.get("专注") == "2 小时 5 分" and _o1.get("数据时间") == "6 小时前",
                   "当天①：**日期 = 他那台今天**、心跳是 6 小时前的 → 照旧给数据 + `数据时间`",
                   json.dumps(_o1, ensure_ascii=False))
-        # ② 日期 = 昨天 → 回**现有那两句**（按他此刻在不在时段里选；逐字）
+        # ② 日期 = 昨天 → 回**现有那两句**（按他此刻在不在时段里选；原样）
         _dy = {"收到": _MON, "载荷": dict(_HB, **{"日期": "09-27"})}
         ok &= _ck(statuscache.material(_dy, now=_ts(2026, 9, 28, 20, 0))
                   == {"ok": False, "error": "他这会儿不在上报时段（工作日 09:00-18:00）"},
-                  "当天②：跨天 + 他这会儿**不在**时段 → 那句原话（逐字）")
+                  "当天②：跨天 + 他这会儿**不在**时段 → 那句原话（原样）")
         _o2 = statuscache.material(_dy, now=_ts(2026, 9, 28, 12, 0))
         ok &= _ck(_o2 == {"ok": False, "电脑不在线": True,
                           "error": "电脑没开机（或者换了地址、连不上）—— 这会儿拿不到它的数据"},
-                  "当天②：跨天 + 他这会儿**在**时段 → `电脑没开机（…）`那句原话（逐字）",
+                  "当天②：跨天 + 他这会儿**在**时段 → `电脑没开机（…）`那句原话（原样）",
                   json.dumps(_o2, ensure_ascii=False))
         _o2b = statuscache.material(
             {"收到": _MON, "载荷": {k: v for k, v in _dy["载荷"].items() if k != "时段"}},
@@ -1990,29 +1990,29 @@ def run():
         ok &= _ck(not _dead_refs,
                   "当天⑤（机检）：`material()` 的**代码里**一个字都没提那句死文本"
                   "（⛔ 不是靠人眼看）", "%d 处引用" % len(_dead_refs))
-        # ⑥ 材料 / 字段 / 失败话逐字未变（机检）
+        # ⑥ 材料 / 字段 / 失败话没有变化（机检）
         #    ⚠️ `pc_status` 搬进了扩展包，那句失败话的引用点跟着搬过去
         #       （`examples/packages/pc-status/tool.py` 的 `_NO_HB`）—— 仍然是**同一个常量**。
         ok &= _ck(statuscache.NO_HEARTBEAT == capabilities.get("pc-status").mod._NO_HB
                   == "电脑没开机（或者换了地址、连不上）—— 这会儿拿不到它的数据",
-                  "当天⑥：`电脑没开机（…）`那句**逐字未变**，而且两处是**同一个常量**")
+                  "当天⑥：`电脑没开机（…）`那句**没有变化**，而且两处是**同一个常量**")
         ok &= _ck("他这会儿不在上报时段（%s）" in _sc_src
                   and "他这会儿不在上报时段\"" in _sc_src
                   and 'out["数据时间"] = ago_text(secs)' in _sc_src
                   and '"数据时间"' in _sc_src,
                   "当天⑥：`他这会儿不在上报时段（…）` / `数据时间` 那个键**原样还在**")
-        # ④ 新鲜心跳（23 秒前）行为与改动前**逐字一致**（连键的顺序都在内）
+        # ④ 新鲜心跳（23 秒前）行为与改动前**完全一致**（连键的顺序都在内）
         _o4 = statuscache.material({"收到": _MON, "载荷": dict(_HB, **{"日期": "09-28"})},
                                    now=_MON + 23)
         ok &= _ck(json.dumps(_o4, ensure_ascii=False) == json.dumps(
             {"ok": True, "日期": "09-28", "专注": "2 小时 5 分", "摸鱼": "25 分",
              "摸鱼来源": "B 站 20 分 / 小红书 5 分", "现在": "在摸鱼",
              "数据时间": "23 秒前"}, ensure_ascii=False),
-                  "当天④：**新鲜心跳**（23 秒前）与改动前**逐字一致**（键序也在内）",
+                  "当天④：**新鲜心跳**（23 秒前）与改动前**完全一致**（键序也在内）",
                   json.dumps(_o4, ensure_ascii=False))
         # ⑥ 那句 90 分钟的话**真的还在文件里**（只是没人调它）
         ok &= _ck("最后心跳是 %d 分钟前，已经超过 %d 分钟没动静了" in _sc_src,
-                  "当天⑥：那句死文本**还在源文件里**（⛔ 用户点名不许删）")
+                  "当天⑥：那句死文本**还在源文件里**（⛔ 用户不许删）")
 
         # ── A2：`pc_status` 的可选参数 `who`──
         #    用户定的形状：**不要程序按提问者路由** —— 像查记忆那样由 LLM 填 `who`。
@@ -2057,7 +2057,7 @@ def run():
                 ok &= _ck(toolkit.call("pc_status", {"who": str(_A2_OWNER_QQ)}, c2).get("专注")
                           == "主人 5 小时",
                           "A2：填主人那台的 QQ 号 → 也认（同一条缓存）")
-                # 空 who + 说话人就是主人 → 还是**他自己那条**（用户拍板的"所有人都一样"）
+                # 空 who + 说话人就是主人 → 还是**他自己那条**
                 _a2_blank = toolkit.call("pc_status", {}, c2)
                 ok &= _ck(_a2_blank.get("ok") and _a2_blank.get("专注") == "主人 5 小时"
                           and _a2_blank.get("数据时间") == "40 秒前",
@@ -2086,7 +2086,7 @@ def run():
                 ok &= _ck(_a2_out == {"ok": False,
                                       "error": "他这会儿不在上报时段（工作日 09:00-18:00）"},
                           "A2：带 who 时那几档照旧 —— **跨天** + 不在他的上报时段 → "
-                          "那句原话（逐字）",
+                          "那句原话（原样）",
                           json.dumps(_a2_out, ensure_ascii=False))
                 statuscache.record(dict(_a2_hb), _a2_fr["id"], now=time.time() - 91 * 60)
                 _a2_st = toolkit.call("pc_status", {"who": _A2_FRIEND_NAME}, c2)
@@ -2142,7 +2142,7 @@ def run():
         store.remove(statuscache.CACHE_NAME)
 
         # ═══ 6.x 身份 = QQ：称呼 / **本群**名片 / 昵称都只是别名 ════════════════════
-        #    拍板「身份 = QQ」，又定了两条：
+        #「身份 = QQ」，又定了两条
         #      · **备注（面板备注 `名字` / 私有备注 `备注`）完全不参与认人**（只用于面板显示）；
         #      · **群名片按群存**（`memory.json[qq].cards[群号]`），认人只看**当前群**那张；
         #        老的单字段 `card` 从这天起只当**历史残留**（认人/显示都不许读）。
@@ -2175,7 +2175,7 @@ def run():
         ok &= _ck(all(q == _WQ1 and (r or {}).get("id") == _w1["id"] for q, r in _q1),
                   "① `who.qq()`（工具认人那条路）这几种写法也认，拿到的 QQ 号也对",
                   "、".join("%s→%s" % (q, (r or {}).get("id")) for q, r in _q1))
-        # ⛔ 拍板：**面板备注 / 私有备注完全不参与匹配**（只用于面板显示）
+        # ⛔：**面板备注 / 私有备注完全不参与匹配**（只用于面板显示）
         ok &= _ck(_who.resolve("张三备注") is None and _who.resolve("记事一") is None
                   and _who.qq("张三备注")[0] == "" and _who.qq("记事一")[0] == "",
                   "① 备注类（面板备注 `名字` / 私有备注 `备注`）**完全不参与认人**",
@@ -2319,12 +2319,12 @@ def run():
                   "⭐ 回归：`pc_status` 的 who **不再接受电脑名**（认不出 → 统一那句）",
                   json.dumps(_w6c, ensure_ascii=False))
 
-        # ── ⑦ 认不出来 → **统一**那句（逐字，不许编新话）──
+        # ── ⑦ 认不出来 → **统一**那句（不许编新话）──
         _w7 = "宇宙无敌查无此人"
         _r7 = toolkit.call("pc_status", {"who": _w7}, c2)
         ok &= _ck(_r7.get("ok") is False
                   and _r7.get("error") == "没找到「%s」这个人 —— 让他起个称呼" % _w7,
-                  "⑦ 认不出来 → 统一那句原文（逐字相等），没编新话",
+                  "⑦ 认不出来 → 统一那句原文（完全相等），没编新话",
                   json.dumps(_r7, ensure_ascii=False))
 
         # ── ⑧ 老数据兼容：手机上那条 `阿强` / `主人QQ 30002` 的形状 ──
@@ -2333,7 +2333,7 @@ def run():
                   "⑧ 老数据（`名字` 里已经有值）照旧当**备注**显示：显示名 = 阿强",
                   "%s ｜ %s" % (_wm8, _who.display_name(_w8)))
         ok &= _ck(_who.resolve("阿强") is None,
-                  "⑧ 但它**不再参与认人** —— 认不出来（2026-10-06 拍板：备注只用于显示）")
+                  "⑧ 但它**不再参与认人** —— 认不出来（2026-10-06 ：备注只用于显示）")
         ok &= _ck(users.update(_w8["id"], name="")[0]
                   and _who.display_name(users.by_id(_w8["id"])) == _WQ_LEGACY,
                   "⑧ 备注**清空**也允许（老记录不会因为这个动作坏掉）")
@@ -2446,14 +2446,14 @@ def run():
             ok &= _ck(_who.resolve("重名词", _cA) is None and _who.qq("重名词", _cA) == ("", None),
                       "⑥ 老接口 `resolve` / `qq` 也不猜（给 None / 空）")
             ok &= _ck(toolkit._AMBIGUOUS == _AMBIG_DEF,
-                      "⑥ 重名那句常量 = 用户定稿的原文（逐字）", repr(toolkit._AMBIGUOUS))
+                      "⑥ 重名那句常量 = 用户定稿的原文（原样）", repr(toolkit._AMBIGUOUS))
             _want6 = _AMBIG_DEF % "重名词"
             _r6a = toolkit.call("memory", {"text": "不该写进去", "who": "重名词"}, _cA)
             _r6b = toolkit.call("pc_status", {"who": "重名词"}, _cA)
             _r6c = toolkit.call("memory", {"who": "重名词"}, _cA)
             ok &= _ck(_r6a.get("error") == _want6 and _r6b.get("error") == _want6
                       and _r6c.get("error") == _want6,
-                      "⑥ 重名 → 三个工具（memory 记 / pc_status / memory 查）都回那一句（逐字相等）",
+                      "⑥ 重名 → 三个工具（memory 记 / pc_status / memory 查）都回那一句（完全相等）",
                       "%r ｜ %r ｜ %r" % (_r6a.get("error"), _r6b.get("error"), _r6c.get("error")))
             ok &= _ck("不该写进去" not in json.dumps(memory.all_people(), ensure_ascii=False),
                       "⑥ 重名时**一个字都没写**（不瞎记到谁名下）",
@@ -2525,7 +2525,7 @@ def run():
                     users.remove(_r["id"])
 
         # ═══ 6.y2 的那一批 ═══════════════════════════════════
-        #    A 的七条文本（逐字）/ 新工具 `user_info`（四种返回 + fields 各种写法）/
+        #    A 的七条文本/ 新工具 `user_info`（四种返回 + fields 各种写法）/
         #    显示四级降级（前缀 / 历史行 / 被引用那条 / 播报材料）/ `strip_echo` 新格式 /
         #    `say` 用统一那两句 / **电脑名整条链路清干净**。
         #    ⚠️ 全程离线：唯一会碰网络的现取昵称那一步，这里记忆里都已经有昵称了。
@@ -2537,36 +2537,36 @@ def run():
         _win_all = {"工作日": [], "时段": ["00:00-24:00"], "日期切换点": "04:00"}
         _tmap = {t["name"]: t for t in toolkit.TOOLS}
 
-        # ── A① 两个常量 + 改名（逐字）──
+        # ── A① 两个常量 + 改名──
         ok &= _ck(toolkit._NOBODY == "没找到「%s」这个人 —— 让他起个称呼",
-                  "A1 `_NOBODY` **逐字**（用户定稿）", repr(toolkit._NOBODY))
+                  "A1 `_NOBODY` **原样**（用户定稿）", repr(toolkit._NOBODY))
         ok &= _ck(toolkit._AMBIGUOUS == "「%s」重名了，查不到 —— 让他起个称呼",
-                  "A2 `_AMBIGUOUS` **一字未动**（逐字）", repr(toolkit._AMBIGUOUS))
+                  "A2 `_AMBIGUOUS` **一字未动**（原样）", repr(toolkit._AMBIGUOUS))
         ok &= _ck("recall" not in _tmap and "memory" in _tmap,
                   "A4 工具改名：`recall` → `memory`（旧名没了）", "、".join(sorted(_tmap)))
         ok &= _ck(list(_tmap["memory"]["params"].keys()) == ["who", "ask", "text"],
                   "A4/B5 参数：`who` / `ask` / `text`（⛔ 没有 action、没有 old/new）",
                   str(list(_tmap["memory"]["params"].keys())))
         ok &= _ck(_tmap["memory"]["desc"] == "查或记某个人的记忆（住哪、性别、生日、口味、身份、喜好等）",
-                  "B5 `memory` 的说明**逐字**（定稿）",
+                  "B5 `memory` 的说明**原样**（定稿）",
                   _tmap["memory"]["desc"])
         ok &= _ck(_tmap["memory"]["params"]["who"][1] == "【消息前缀】或「自己」；留空=当前说话的人",
-                  "B5 `who` 的说明**逐字**", _tmap["memory"]["params"]["who"][1])
+                  "B5 `who` 的说明**原样**", _tmap["memory"]["params"]["who"][1])
         ok &= _ck(_tmap["memory"]["params"]["ask"][1]
                   == "查什么；留空=全部",
-                  "B5 `ask` 的说明**逐字**", _tmap["memory"]["params"]["ask"][1])
+                  "B5 `ask` 的说明**原样**", _tmap["memory"]["params"]["ask"][1])
         ok &= _ck(_tmap["memory"]["params"]["text"][1]
                   == "要记或要改的一条事实",
-                  "B5 `text` 的说明**逐字**", _tmap["memory"]["params"]["text"][1])
+                  "B5 `text` 的说明**原样**", _tmap["memory"]["params"]["text"][1])
         ok &= _ck(_tmap["weather"]["desc"] == "查某个城市的天气。",
-                  "A5 天气说明**逐字**", _tmap["weather"]["desc"])
+                  "A5 天气说明**原样**", _tmap["weather"]["desc"])
 
-        # ── A③ / B⑧ 新工具 `user_info`：说明 + 两个参数（逐字）──
+        # ── A③ / B⑧ 新工具 `user_info`：说明 + 两个参数──
         ok &= _ck(_tmap["user_info"]["desc"] == "查用户的资料：QQ 号、称呼、QQ 昵称、本群名片。",
-                  "A3 `user_info` 说明**逐字**")
+                  "A3 `user_info` 说明**原样**")
         ok &= _ck(_tmap["user_info"]["params"]["who"][1] == "【消息前缀】；留空=当前说话的人"
                   and _tmap["user_info"]["params"]["fields"][1] == "想知道的项，留空=全给",
-                  "A3 `user_info` 两个参数说明**逐字**",
+                  "A3 `user_info` 两个参数说明**原样**",
                   "%r ｜ %r" % (_tmap["user_info"]["params"]["who"][1],
                                 _tmap["user_info"]["params"]["fields"][1]))
         ok &= _ck(set(_tmap) == {"now", "memory", "user_info", "callname", "wake", "plan",
@@ -2584,17 +2584,17 @@ def run():
         # ── B5 新 / 合并工具的说明（定稿）──
         ok &= _ck(_tmap["callname"]["desc"]
                   == "给某个人定【称呼】",
-                  "B5 `callname` 说明**逐字**", _tmap["callname"]["desc"][:30])
+                  "B5 `callname` 说明**原样**", _tmap["callname"]["desc"][:30])
         ok &= _ck(_tmap["callname"]["params"]["who"][1] == "【消息前缀】；留空=当前说话的人"
                   and _tmap["callname"]["params"]["name"][1]
                   == "他要你怎么叫他（新的【称呼】）；留空=取消，回到他的群名片/昵称",
-                  "B5 `callname` 两个参数**逐字**")
+                  "B5 `callname` 两个参数**原样**")
         ok &= _ck(list(_tmap["wake"]["params"].keys())
                   == ["action", "when", "note", "where", "id"],
                   "B5 `wake` 参数 = action / when / note / where / id",
                   str(list(_tmap["wake"]["params"].keys())))
         ok &= _ck(_tmap["wake"]["desc"] == "给自己设一个唤醒：到点你会被叫醒执行任务",
-                  "B5 `wake` 说明**逐字**", _tmap["wake"]["desc"])
+                  "B5 `wake` 说明**原样**", _tmap["wake"]["desc"])
         ok &= _ck(_tmap["wake"]["params"]["action"][1]
                   == "留空=定新的；列=看现有的；取消=撤一条"
                   and _tmap["wake"]["params"]["note"][1]
@@ -2602,26 +2602,26 @@ def run():
                   and _tmap["wake"]["params"]["where"][1]
                   == "醒来在哪儿说话：留空=当前会话；填某人的【消息前缀】=私聊他"
                   and _tmap["wake"]["params"]["id"][1] == "要撤的那一条：编号或关键词",
-                  "B5 `wake` 的 action/note/where/id 说明**逐字**")
+                  "B5 `wake` 的 action/note/where/id 说明**原样**")
         ok &= _ck(_tmap["history"]["desc"] == "回看你上下文里没有的更早发言",
-                  "B5 `history` 说明**逐字**", _tmap["history"]["desc"])
+                  "B5 `history` 说明**原样**", _tmap["history"]["desc"])
         ok &= _ck(list(_tmap["history"]["params"].keys())
                   == ["count", "who", "q", "after", "before"],
                   "B5 `history` 参数 = count / who / q / after / before")
         ok &= _ck(_tmap["plan"]["desc"]
                   == "多步任务先建一份计划（目标 + 步骤表）；一步能办完的不用。",
-                  "B5 `plan` 说明**逐字**（2026-10-30 修订）", _tmap["plan"]["desc"])
+                  "B5 `plan` 说明**原样**（2026-10-30 修订）", _tmap["plan"]["desc"])
         ok &= _ck(_tmap["plan"]["params"]["objective"][1] == "这次要办成什么，一句话（可选）"
                   and _tmap["plan"]["params"]["steps"][1]
                   == "每步一条带状态（未开始/进行中/已完成）；整张替换，最多一个进行中",
-                  "B5 `plan` 两个参数**逐字**")
+                  "B5 `plan` 两个参数**原样**")
         _psteps = toolkit.schemas()
         _ps = [x for x in _psteps if x["function"]["name"] == "plan"][0]["function"]["parameters"]
         ok &= _ck(_ps["properties"]["steps"].get("items", {}).get("type") == "object"
                   and "进行中" in json.dumps(_ps, ensure_ascii=False),
                   "B5 `plan.steps` 的 schema 带 items / 三个状态（不然模型写不对形状）")
 
-        # ── 6.y2.9 术语统一：13 条最终文本逐字都在 ──
+        # ── 6.y2.9 术语统一：13 条最终文本原样都在 ──
         #    只核对「最终文本」在不在；改了哪几个字由上面的逐条断言分别钉。
         #    ⚠️ ②③ 那两条是 `pc_status` 的文本 —— 它搬进扩展包了，
         #       所以从扩展包的工具定义里取（字**一个字没动**）。
@@ -2657,14 +2657,14 @@ def run():
         )
         _term_bad = [n for n, hit in _term13 if not hit]
         ok &= _ck(not _term_bad,
-                  "术语统一（2026-10-30 定稿）：13 条最终文本**逐字**都在",
+                  "术语统一（2026-10-30 定稿）：13 条最终文本**原样**都在",
                   ("不对：%s" % "、".join(_term_bad)) if _term_bad else "13/13")
 
-        # ── A⑥ 天气取不到城市时的失败话（逐字）──
+        # ── A⑥ 天气取不到城市时的失败话──
         _wr = toolkit.call("weather", {}, mk("MMZ"))
         ok &= _ck(_wr == {"ok": False,
                           "error": "没说哪个城市。要是他以前说过自己住哪，先查一下他的记忆。"},
-                  "A6 天气没给城市 → 失败话**逐字**", json.dumps(_wr, ensure_ascii=False))
+                  "A6 天气没给城市 → 失败话**原样**", json.dumps(_wr, ensure_ascii=False))
 
         # ── A⑦ `say` 自己那句删掉了（源码里一个字都不该剩）──
         _say_src = inspect.getsource(toolkit.t_say)
@@ -2672,7 +2672,7 @@ def run():
                   and "to 留空" not in _say_src,
                   "A7 `say` 那句「不知道「%s」的 QQ 号 —— …（to 留空就行）」**整句删掉了**")
 
-        # ── B⑧ `user_info` 四种返回（逐字）+ `fields` 各种写法 ──
+        # ── B⑧ `user_info` 四种返回+ `fields` 各种写法 ──
         _UQQ, _UQQ2, _UG = "30001", "30002", "20002"
         memory.remember_name(_UQQ, "李四")
         memory.touch(_UQQ, nick="華仙", card="阿猫", group_id=_UG)
@@ -2683,20 +2683,20 @@ def run():
         ok &= _ck(toolkit.call("user_info", {}, _cg)
                   == {"ok": True, "QQ": _UQQ, "称呼": "李四",
                       "QQ昵称": "華仙", "本群名片": "阿猫"},
-                  "B8 ① 群里·fields 留空 —— **逐字**",
+                  "B8 ① 群里·fields 留空 —— **原样**",
                   json.dumps(toolkit.call("user_info", {}, _cg), ensure_ascii=False))
         ok &= _ck(toolkit.call("user_info", {"fields": "昵称"}, _cg)
                   == {"ok": True, "QQ": _UQQ, "QQ昵称": "華仙"},
-                  "B8 ② 群里·fields=「昵称」 —— **逐字**",
+                  "B8 ② 群里·fields=「昵称」 —— **原样**",
                   json.dumps(toolkit.call("user_info", {"fields": "昵称"}, _cg),
                              ensure_ascii=False))
         ok &= _ck(toolkit.call("user_info", {}, _cp)
                   == {"ok": True, "QQ": _UQQ, "称呼": "李四", "QQ昵称": "華仙"},
-                  "B8 ③ 私聊·留空 —— **逐字**（⛔ 永远没有 `本群名片`）",
+                  "B8 ③ 私聊·留空 —— **原样**（⛔ 永远没有 `本群名片`）",
                   json.dumps(toolkit.call("user_info", {}, _cp), ensure_ascii=False))
         ok &= _ck(toolkit.call("user_info", {"who": "王五"}, _cp)
                   == {"ok": True, "QQ": _UQQ2, "称呼": "王五", "QQ昵称": "是阿强呀"},
-                  "B8 ④ 私聊查别人 —— **逐字**",
+                  "B8 ④ 私聊查别人 —— **原样**",
                   json.dumps(toolkit.call("user_info", {"who": "王五"}, _cp), ensure_ascii=False))
         # fields 宽松认"包含"；认不出的项忽略；填了就只给那几项 + `QQ`
         for _f, _want in (("称呼", {"ok": True, "QQ": _UQQ, "称呼": "李四"}),
@@ -2824,14 +2824,14 @@ def run():
             _s1 = toolkit.call("say", {"text": "自检", "who": "查无此人甲乙"}, _cp)
             ok &= _ck(_s1.get("ok") is False and not _sent_say
                       and _s1.get("error") == "没找到「查无此人甲乙」这个人 —— 让他起个称呼",
-                      "B7 `say` 认不出人 → 统一那句 `_NOBODY`（逐字）",
+                      "B7 `say` 认不出人 → 统一那句 `_NOBODY`（原样）",
                       "%r" % (_s1.get("error"),))
             memory.remember_name("7000000001", "撞名甲乙")
             memory.remember_name("7000000002", "撞名甲乙")
             _s2 = toolkit.call("say", {"text": "自检", "who": "撞名甲乙"}, _cp)
             ok &= _ck(_s2.get("ok") is False and not _sent_say
                       and _s2.get("error") == "「撞名甲乙」重名了，查不到 —— 让他起个称呼",
-                      "B7 `say` 撞名 → 统一那句 `_AMBIGUOUS`（逐字）",
+                      "B7 `say` 撞名 → 统一那句 `_AMBIGUOUS`（原样）",
                       "%r" % (_s2.get("error"),))
             memory.forget_name("7000000001")
             memory.forget_name("7000000002")
@@ -2870,14 +2870,14 @@ def run():
         memory.forget_person(_UQQ)
         memory.forget_person(_UQQ2)
 
-        # ═══ 6.z 同一个人多台电脑 → 战报**拼成一份**（拍板 1(a)+2(a)+3(a)）═══
+        # ═══ 6.z 同一个人多台电脑 → 战报**拼成一份**（ 1(a)+2(a)+3(a)）═══
         #    规则（只看"今天有数据"、相加、来源按名相加降序、`现在`/`数据时间` 取心跳最新那条）
         #    与解析/格式化都在 `fgbot/merge.py`（**纯函数**）；"去哪几条缓存里找那个人另外几台"
         #    在 `statuscache.merge_person`。全程**离线打桩**：users.json / status-cache.json
         #    都在临时目录里，不联网、不发消息。
-        #    ⚠️ 单台那两条（⑥ / ⑥′）钉的是"输出与改动前**逐字相同**"：拿 json 字符串逐字比，
+        #    ⚠️ 单台那两条（⑥ / ⑥′）钉的是"输出与改动前**完全一致**"：拿 json 字符串逐一比，
         #       连**键的顺序**都在内（⑥′ 走的是 之后的**空 who = 说话人**那条路，
-        #       所以那份"逐字相同"是**缓存这条路上**的逐字相同 —— 现在它会带一个 `数据时间`）。
+        #       所以那份"完全一致"是**缓存这条路上**的完全一致 —— 现在它会带一个 `数据时间`）。
         #    ⚠️ 这个 section 里直连那两个函数同样换成**一调就炸**的桩（再钉一次"没有入口"）。
         _win_all = {"工作日": [], "时段": ["00:00-24:00"], "日期切换点": "04:00"}
 
@@ -2888,7 +2888,7 @@ def run():
         ok &= _ck(not _rt_bad and merge.parse_secs("") == 0 and merge.parse_secs(None) == 0
                   and merge.parse_secs("   ") == 0 and merge.fmt_secs(0) == "0"
                   and merge.parse_secs("18") is None and merge.parse_secs("瞎写") is None,
-                  "合并①：时长**解析 ⇄ 格式化往返**逐字不变（用户列的那几种写法全在内，"
+                  "合并①：时长**解析 ⇄ 格式化往返**保持不变（用户列的那几种写法全在内，"
                   "含 \"0\" 与空；认不出来的给 None —— ⛔ 不当成 0）",
                   "往返不上的：%s" % (_rt_bad or "无"))
         _drop = [("1 小时 12 分 26 秒", "1 小时 12 分"), ("12 小时 5 分 3 秒", "12 小时 5 分"),
@@ -2899,7 +2899,7 @@ def run():
                   and merge.fmt_secs(3660) == "1 小时 1 分"
                   and merge.fmt_secs(3599) == "59 分 59 秒",
                   "合并①：**≥1 小时那一档丢掉秒**、余 0 分只写\"N 小时\""
-                  "—— 与电脑侧 `Durations.Status`（`Durations.cs:37`）**逐字一致**",
+                  "—— 与电脑侧 `Durations.Status`（`Durations.cs:37`）**完全一致**",
                   "不对的：%s" % (_drop_bad or "无"))
         ok &= _ck(merge.parse_secs("1 小时 12 分") == 4320
                   and merge.parse_secs("20 分 26 秒") == 1226
@@ -2979,7 +2979,7 @@ def run():
                       _m_txt)
             ok &= _ck("5 小时" not in _m_txt and _YDAY not in _m_txt,
                       "合并⑤：**不同 `日期`** 的那台（丙：昨天那 5 小时）没被混进来", _m_txt)
-            # ⑥ 只有一台 → 逐字相同（键、值、顺序、`数据时间` 一个都没动）
+            # ⑥ 只有一台 → 完全一致（键、值、顺序、`数据时间` 一个都没动）
             _m_ok6, _m_msg6, _m_r6 = users.add("单台丙", "3622222222", "", "自检（稍后撤销）")
             ok &= _ck(_m_ok6, "合并⑥：再造一台**单独的**（那个人只有一条记录）", _m_msg6)
             memory.remember_name("3622222222", "单台丙")     # 认人看**称呼**，不看备注
@@ -2996,7 +2996,7 @@ def run():
                            '"摸鱼": "25 分", "摸鱼来源": "B 站 20 分", "现在": "在摸鱼", '
                            '"数据时间": "23 秒前"}' % _TODAY)
             ok &= _ck(_m_one == _m_one_want,
-                      "合并⑥：**只有一台**电脑 → 输出与改动前**逐字相同**"
+                      "合并⑥：**只有一台**电脑 → 输出与改动前**完全一致**"
                       "（连键的顺序、`数据时间` 都没动）", _m_one)
 
             # ── ⑥′⑦′ 空 who（= **当前说话的人**那台）：走缓存，也会把"同一个人的另一台"并进来 ──
@@ -3045,7 +3045,7 @@ def run():
             ok &= _ck(_m_f1.get("ok") is False and _m_f1.get("电脑不在线") is True
                       and _m_f1.get("error")
                       == "电脑没开机（或者换了地址、连不上）—— 这会儿拿不到它的数据",
-                      "合并⑧：**没有他的心跳** → 那句原话逐字未变（「电脑没开机（…）」）",
+                      "合并⑧：**没有他的心跳** → 那句原话没有变化（「电脑没开机（…）」）",
                       json.dumps(_m_f1, ensure_ascii=False))
             # ⚠️ 直连那条路上的**两句**文案（"…没接住…" / "电脑返回的格式不对"）在这条路上
             #    永远不会有；`t_pc_status` 里那句删掉了，`_pc_forward` 里那几个原因码**原样留着**。
@@ -3066,7 +3066,7 @@ def run():
 
         # ── **501 那条路必须消失**：真的起一个本地 HTTP 服务，按契约打一条 status.push
         #    契约：POST /api + action=status.push + 她那套鉴权 → **200 / 204 = 收到**。
-        #    回 501 的话电脑会一直以为"她还不认识这个动作"（用户点名最要紧的一条）。
+        #    回 501 的话电脑会一直以为"她还不认识这个动作"。
         # ⚠️ （第四批）：推送那两条**只认 `users.json` 里「每人一把」那把令牌** ——
         #    这一节从前用的是共享令牌（`bot.token`），现在会被 **403**（见 6.55 的 ⑫ 那一节）。
         #    所以这里先借一条用户记录，用完立刻撤掉。
@@ -3117,7 +3117,7 @@ def run():
         # 6.55 互联网改造那一批
         #      新签名 / 重放保护 / 用户表（发码·撤销）/ 门禁 / 429 限流 / 面板不带 token
         #
-        # 契约：`规格-多电脑接入.md` §3/§5/§6 + `给PCStatus的答复.md` B1~B6・C1~C5・D2
+        # 契约：契约里的多用户模型 / 重放保护 / 心跳
         #       + 历史讨论 §11/§12。
         # 全部**离线打桩、不联网**：真的起一个 127.0.0.1 的 HTTP 服务，但只打它自己；
         # `users.json` 与 `local-config.json` 都指到临时目录（正式目录一个字节都不动）。
@@ -3379,7 +3379,7 @@ def run():
                       "主人（共享令牌 = 面板那条路）**全部照旧 200**" % len(_CTRL_CASES),
                       "不对的：%s" % "；".join(_ctrl_bad))
 
-            # **两把不许互换**（契约 A3 点名要钉的）：NapCat 那条路（`POST /`）只认共享那把 ——
+            # **两把不许互换**：NapCat 那条路（`POST /`）只认共享那把 ——
             # 拿用户 token 去签它，一样被丢掉。⚠️ 载荷用 `meta_event`（她本来就不处理），
             # 所以**万一**鉴权真放行了也不会叫她开口、不会发任何消息（自检不许有副作用）。
             _n0 = _read_log()
@@ -3394,8 +3394,8 @@ def run():
 
             # ── ④ 公网那条路：`bot.control.allowPublic`──
             #
-            # 用户拍板的规矩：
-            #   · **关**（默认）= 和从前**逐字一样**：公网来源一律 403 空正文；
+            # 的规矩
+            #   · **关**（默认）= 和从前**原样一样**：公网来源一律 403 空正文；
             #   · **开** = **只有 `POST /api`** 放到"鉴权那一步"：必须带有效凭据
             #     （新签名 `X-FG-Signature` / 老签名 `X-Signature: sha1=`，每人一把那把
             #     token）；没凭据 / 签错 → **403 空正文 + 计一次失败**（照 429 那套）；
@@ -3415,12 +3415,12 @@ def run():
                 server.client_allowed = lambda ip: False
                 base.RESTART_PATH = os.path.join(tmp, "restart.txt")
 
-                # ── ① 开关**关**：和现在逐字一致（公网一律 403，连计数都不动）──
+                # ── ① 开关**关**：和现在完全一致（公网一律 403，连计数都不动）──
                 server.allow_public = lambda: False
                 ratelimit.reset()
                 c, t, _h = _hit("/api", b1, _newhdr(rec2["token"], b1))
                 ok &= _ck(c == 403 and t == "",
-                          "公网·开关关：**签名对也 403 + 空正文**（= 现在的行为，逐字不变）",
+                          "公网·开关关：**签名对也 403 + 空正文**（= 现在的行为，保持不变）",
                           "HTTP %s ｜ %r" % (c, t[:20]))
                 ok &= _ck(ratelimit.state("127.0.0.1") == "窗口内失败 0 次",
                           "公网·开关关：门禁挡下的那条**不算鉴权失败**（计数没动）",
@@ -3792,7 +3792,7 @@ def run():
             # ── ⑪ 看共享令牌──
             #
             # 用户的原话是「我上哪去获取这个令牌？」→ 面板上点一下就能看到。
-            # 四条纪律（用户点名要的）：
+            # 四条纪律
             #   · **只有主人**能调（别人 403 空正文，和 user.* 同口径）；
             #   · 值只从**已鉴权的 /api** 走（⛔ 绝不嵌进 HTML）；响应带 `Cache-Control: no-store`；
             #   · 日志里**只写"谁看了令牌"**，一个字节的值都不落；
@@ -3849,7 +3849,7 @@ def run():
 
             # ── ⑫ 推送只认「每人一把」的用户令牌──
             #
-            # 用户拍板：**推送数据只认「每人一把」的用户令牌，不再认共享令牌** ——
+            # ：**推送数据只认「每人一把」的用户令牌，不再认共享令牌** ——
             #   · `announce`（含别名「播报」/「broadcast」）与 `status.push` 的凭据必须是
             #     `users.json` 里某一条记录那把 token（身份 = 那条记录的 id）；
             #   · **共享那把**（`bot.token` / `napcatToken`，身份 `own`）来推 →
@@ -3940,7 +3940,7 @@ def run():
                 ok &= _ck(c == 403 and t == "",
                           "推送⑥：乱写的令牌 → 403 + 空正文", "HTTP %s ｜ %r" % (c, t[:20]))
 
-                # 日志里要能一眼看出"推送不认共享令牌"（用户点名要的那行）
+                # 日志里要能一眼看出"推送不认共享令牌"
                 _log_tail = _read_log()
                 ok &= _ck("不认共享令牌" in _log_tail,
                           "推送③：日志里留下「不认共享令牌」那行（真机排查要看它）",
@@ -4259,7 +4259,7 @@ def run():
         #      没有上限** —— 端口一映射到公网就能被撑死。现在超上限直接
         #      **503 + 空正文 + Retry-After**（和电脑侧讲好的那套一致）。
         #
-        # 这段自检要证明三件事（用户点名）：
+        # 这段自检要证明三件事
         #   ① 正常请求不受影响（没满就照旧 200）；
         #   ② 超限回 503（+ Retry-After + 空正文）；
         #   ③ **不泄漏名额/线程** —— 用"第二轮风暴照样只有 2 条 200"来证，
@@ -4318,7 +4318,7 @@ def run():
             # 先把一条正常请求打过去 —— 没满的时候**一点没受影响**
             _c1, _b1 = _plain()
             ok &= _ck(_c1 == 200 and _b1.strip() == "ok",
-                      "并发闸：没满的时候正常请求照旧 200（用户点名要的「正常请求不受影响」）",
+                      "并发闸：没满的时候正常请求照旧 200（用户「正常请求不受影响」）",
                       "HTTP %s ｜ %r" % (_c1, _b1[:20]))
 
             _r1 = _storm(6)
@@ -4383,7 +4383,7 @@ def run():
                   "日志前缀：不认识的`词: `不误伤（只有她认识的称呼/数字/带 QQ 的括号才削）")
         ok &= _ck(guards.strip_echo("10001: 你好", names=()) == "你好",
                   "日志前缀：纯数字开头也算（那明显是日志，不是她的话）")
-        # 她自己把名字当前缀写出来（用户点名要兜的）
+        # 她自己把名字当前缀写出来
         ok &= _ck(guards.strip_echo("MMZ: 你好呀") == "你好呀",
                   "日志前缀：她自己写「MMZ: …」也削掉")
         ok &= _ck(guards.strip_echo("MMZBOT：在的呀") == "在的呀",
@@ -4407,7 +4407,7 @@ def run():
         # ── 触发词
         #    · 别名只在**开头**算叫她；触发词**出现在哪儿都算**
         #    · 触发词只管把话递给她，回什么全由模型组织（没有现成回复）
-        #    · **不放性格文件**（用户点名的：那是"她是谁"，会整段进提示词）
+        #    · **不放性格文件**
         import fgbot.llm as _llm
         _old = _llm.runtime_get("triggerWords")
         # ⚠️ （"需要只有我能调"）：`triggers` / `memory` / `mem_*` /
@@ -4434,7 +4434,7 @@ def run():
                       "触发词：清空之后句中的词就不叫她了（空 = 一个都没有）")
             ok &= _ck(isinstance(agent.info().get("触发词"), list),
                       "触发词：/status 里带着它（面板/App 读得到）")
-            # ── 触发词限流（30 秒）+ 她自己说的话不能触发她（用户点名的两条）
+            # ── 触发词限流（30 秒）+ 她自己说的话不能触发她
             _llm.runtime_set("triggerWords", ["摸鱼"])
             agent._TRIG_AT.clear()
             seen.clear()
@@ -4450,7 +4450,7 @@ def run():
             # 被 @ / 叫名字 / 私聊 走的是另一条路，不受这个限流
             seen.clear()
             r3 = agent.handle(mk("又摸鱼了", group=True, at=True))
-            ok &= _ck(r3 is not None, "触发词限流**不**影响被 @（点名照答）")
+            ok &= _ck(r3 is not None, "触发词限流**不**影响被 @（照答）")
             # 她自己发的消息（发信人 = 她自己）一律扔掉 → 她的话里带触发词也勾不动她
             seen.clear()
             me = mk("我今天在摸鱼", group=True, uid=base.self_id())
@@ -4518,7 +4518,7 @@ def run():
         toolkit.call("wake", {"action": "取消", "id": str(_r2.get("编号"))}, ctx_b5)
         _r3 = toolkit.call("wake", {"when": "20分钟后"}, ctx_b5)
         ok &= _ck(_r3.get("ok") is False and _r3.get("error") == "没说醒来要干什么 ",
-                  "B5：note 留空 → 逐字回第 7 条那句（结尾那个空格也照原样）",
+                  "B5：note 留空 → 原样回第 7 条那句（结尾那个空格也照原样）",
                   repr(_r3.get("error")))
         ok &= _ck(all(n not in [t["name"] for t in toolkit.TOOLS]
                       for n in ("remind", "reminders", "call_me", "forget_call_name",
@@ -4606,7 +4606,7 @@ def run():
         # ── 「记忆」页那一列的显示口径────────────────
         #    左列**三级降级**：称呼 → 昵称 → QQ 号；右侧固定 QQ 号；详情头部齐全。
         #    ⚠️ 这段逻辑跑在**浏览器**里，手机侧没有 node 能执行它 —— 所以这里把
-        #       发出去的那段 JS 抠出来**逐字核**（谁改了那几行，这条断言就红）。
+        #       发出去的那段 JS 抠出来**原样核**（谁改了那几行，这条断言就红）。
         import re as _re                              # 别用 `re`：本函数后面还有一个
                                                       # `import re`，同作用域会更早 UnboundLocal
 
@@ -4827,10 +4827,10 @@ def run():
             r = toolkit.call("memory", {}, cx)
             ok &= _ck(r == {"ok": True, "一共": 3,
                             "记着他这些": ["住在杭州", "住在青岛", "喜欢喝美式咖啡"]},
-                      "形状③ 没填 `ask` → 全部（逐字对）", str(r))
+                      "形状③ 没填 `ask` → 全部（逐一比对）", str(r))
             r = toolkit.call("memory", {"ask": "量子纠缠退相干"}, cx)
             ok &= _ck(r == {"ok": True, "一共": 3, "没找到相关的": True},
-                      "形状② 完全无关 → 「没找到相关的」（逐字对）", str(r))
+                      "形状② 完全无关 → 「没找到相关的」（逐一比对）", str(r))
             hit = None
             for q in ("喜欢喝美式咖啡", "住在青岛", "住在杭州"):
                 rr = toolkit.call("memory", {"ask": q}, cx)
@@ -5119,7 +5119,7 @@ def run():
                                               "replySplitGapSeconds", "replySplitMaxParts"))
         _stub_back_e = _stub_reply["text"]
         # 一段**没有冒号/括号/空行**的长话：guards 那两道削（内心独白 / 日志前缀）不会动它，
-        # 于是"拼起来 == 原文"才能逐字比。
+        # 于是"拼起来 == 原文"才能逐一比。
         _unit = "今天下午我在群里看到大家在讨论那个新出的游戏，说得挺热闹的。"
         _long, _i = "", 0
         while len(_long) < 2000:
@@ -5128,14 +5128,14 @@ def run():
         try:
             _cap_g = int(_ag_e.get("maxGroupReplyChars") or 1200)
 
-            # ── ① 短回复 → 恰好一条，内容逐字不变 ─────────────────────────
+            # ── ① 短回复 → 恰好一条，内容保持不变 ─────────────────────────
             _eposts[:] = []
             _short = "在呀，今天怎么样？"
             _r1 = im.send_group(123456789, _short, at=10001, reply_to="1692039722")
             ok &= _ck(_r1 and len(_eposts) == 1 and _eposts[0][0] == "send_group_msg",
                       "① 短回复 → **恰好一条**（不多拆）", "%d 条" % len(_eposts))
             ok &= _ck(_etext() == ["\n" + _short],
-                      "① 短回复的内容**逐字不变**（一个字没多、一个字没少）", repr(_etext()))
+                      "① 短回复的内容**保持不变**（一个字没多、一个字没少）", repr(_etext()))
             ok &= _ck(_etypes() == [["reply", "at", "text"]],
                       "① 短回复的发送形状照旧：引用 + @ + 正文", str(_etypes()))
 
@@ -5502,7 +5502,7 @@ def run():
                   "③ 回了空 content → **判成不能用**（原来是「能用：(空)」的假绿灯）", _msg2)
         # ⛔ 那句提示词是 LLM 文本，一个字都不许动（要改得先给用户看）
         ok &= _ck(_probe.get("messages") == [{"role": "user", "content": "回一个字：好"}],
-                  "③ 测试用的那句提示词**逐字未变**（LLM 文本，不许顺手改）",
+                  "③ 测试用的那句提示词**没有变化**（LLM 文本，不许顺手改）",
                   repr(_probe.get("messages")))
 
         # ── dump-llm.on：完整请求/响应照现有机制存，**不含 key**
@@ -5520,7 +5520,7 @@ def run():
             # ⚠️ 暂存目录里**没有 llm-key.txt**（它在 deploy 的 NEVER 名单里），config 的 apiKey 也空
             #    → 这一趟没有 key 可查。那就只钉"dump 真的写出来了"。
             #    为什么必须这么改：deploy 第 ② 步是在**暂存目录**里跑自检的，从前那条老 deploy
-            #    靠"有告警就不看退出码"糊过去；现在退出码是硬的（用户点名要修），
+            #    靠"有告警就不看退出码"糊过去；现在退出码是硬的
             #    这条不放过，任何一次 deploy 都推不上去。手机上（有 key）那半条查照旧跑。
             _dump_ok = "messages" in _dump_txt
             _dump_why = "dump %d 字（这趟没配 key，跳过「不含 key」那半条）" % len(_dump_txt)
@@ -6186,7 +6186,7 @@ def run():
         #      只留「system + 当前那句 + 她自己的 tool_calls + tool 结果」，
         #      ⛔ 更早的对话历史一条都不带；而**第 1 次请求一个字不动**（历史照旧在）。
         #   ② 别的工具（`memory` / `search` / …）第 2 次**照旧带历史**
-        #      （回归：⛔ 不许跟着 `pc_status` 一起砍 —— 用户点名只砍那一个）。
+        #      。
         #   ③ 播报（`announce`）：**一条对话历史都不带**，形状 = [system] + [材料/指令]。
         #
         #   ⚠️ 走的是**真入口**（`agent._think`，跟 `handle()` 里那个 worker 同一条路），
@@ -6212,7 +6212,7 @@ def run():
         _ms_real_sp, _ms_real_run = im.send_private, llm.run_turn
 
         def _ms_copy(x):
-            """按 wire 形状复制一份（跟真发出去的那串 JSON 逐字对应）。"""
+            """按 wire 形状复制一份（跟真发出去的那串 JSON 逐一比对应）。"""
             return json.loads(json.dumps(x, ensure_ascii=False))
 
         def _ms_seq(ms):
@@ -6314,22 +6314,22 @@ def run():
             _j2 = json.dumps(shots[1], ensure_ascii=False)
             _has1 = all(h in _j1 for h in _MS_HIST)
             _has2 = any(h in _j2 for h in _MS_HIST)
-            # ① 第 1 次请求 = 拼装器给的那份，**逐字**（历史一条不少）
-            #    ⚠️ B1 之后历史段从第 2 条开始（第 1 条是「你看到的是这个群最近 N 条消息」）；
+            # ① 第 1 次请求 = 拼装器给的那份，**原样**（历史一条不少）
+            #    ⚠️ B1 之后历史段从开始；
             #    ⚠️ 起最前面多一条**技能目录**（system 之后、历史之前），
             #       所以历史段整体后移一位（`_cut` 由拼装器现算，这里跟着它走）。
             _cat_at = 1 if capabilities.catalog_text() else 0
             ok &= _ck(shots[0] == _ms_inputs[0]
                       and _cut == (2 + _cat_at, 2 + _cat_at + len(_MS_HIST)) and _has1,
-                      "%s：① 第 1 次请求**逐字** = 拼装的那份、历史照旧在"
+                      "%s：① 第 1 次请求**原样** = 拼装的那份、历史照旧在"
                       "（历史段 = %r，system 在最前）" % (label, _cut), _ms_seq(shots[0]))
-            # ② 第 2 次请求的开头**逐字** = 「system + 快照 + 当前那句」
+            # ② 第 2 次请求的开头**原样** = 「system + 快照 + 当前那句」
             #    （C-3：按 `_hist_range` 这段**本轮边界**切，不是按最后一条 system）
             _keep = list(_ms_inputs[0][:_cut[0]]) + list(_ms_inputs[0][_cut[1]:])
             _roles2 = [m.get("role") for m in shots[1]]
             if not want_history:
                 ok &= _ck(shots[1][:len(_keep)] == _keep,
-                          "%s：② 第 2 次请求开头**逐字** =「system + 快照 + 当前那句」（%d 条）"
+                          "%s：② 第 2 次请求开头**原样** =「system + 快照 + 当前那句」（%d 条）"
                           % (label, len(_keep)))
             # ②' 历史该在的在、该不在的不在
             ok &= _ck(_has2 == want_history,
@@ -6376,12 +6376,12 @@ def run():
                       "③ 播报请求的形状就是 [system] + [材料/指令]（⛔ 一条历史都没有）",
                       " ".join(_aroles))
             ok &= _ck(bool(_a0) and _a0[0].get("content") == persona.system_prompt(),
-                      "③ 播报的系统提示词**逐字** = persona.system_prompt()（人设一个字没动）")
+                      "③ 播报的系统提示词**原样** = persona.system_prompt()（人设一个字没动）")
             _acont = ((_a0[1].get("content") if len(_a0) > 1 else "") or "")
             _arow = json.dumps(_row, ensure_ascii=False, separators=(",", ":"))
             ok &= _ck(_arow in _acont and "<system-reminder>" in _acont
                       and str(_MS_GID) in _acont,
-                      "③ 材料（那一行记录逐字）+ 指令（`<system-reminder>` / 收件群）都在")
+                      "③ 材料（那一行记录原样）+ 指令（`<system-reminder>` / 收件群）都在")
             ok &= _ck(not any(h in _acont for h in _MS_HIST),
                       "③ ⛔ 那段对话历史一个字都没进播报请求")
 
@@ -6416,7 +6416,7 @@ def run():
             _has1 = bool(_rep) and any("同一个工具（now）" in str(m.get("content"))
                                        for m in _rep[0]) if _rep else False
             ok &= _ck(len(_rep) == 4 and not _has1 and not _has2 and _has3,
-                      "A4 第 3 次同工具同参数才塞提醒（第 1、2 次不塞；形态逐字）",
+                      "A4 第 3 次同工具同参数才塞提醒（第 1、2 次不塞；形态原样）",
                       "%d 次请求 / 前两次含=%s,%s 第3次含=%s" % (len(_rep), _has1, _has2, _has3))
             ok &= _ck(bool(_rep) and llm._pairing_ok(_rep[-1]),
                       "A4 提醒插在**这一批 tool 消息之后**（tool_calls ↔ tool 配对没坏）")
@@ -6531,7 +6531,7 @@ def run():
         ok &= _ck(len(_hist1) == 3 and len(_asst1) == 1
                   and _asst1[0].get("content") == "我在想"
                   and not _asst1[0].get("tool_calls"),
-                  "① 半截的 assistant 消息（逐字）追加进了 messages；半截 tool_calls 一个没留",
+                  "① 半截的 assistant 消息（原样）追加进了 messages；半截 tool_calls 一个没留",
                   "%d 条 / %s" % (len(_hist1), llm._digest({"messages": _hist1})))
         _log1 = _read_log()[_log0:]
         ok &= _ck("第 1 次续写" in _log1 and "这次撞到了 max_tokens 上限" in _log1,
@@ -6717,7 +6717,7 @@ def run():
                            "2. 比对两天数据 — 进行中\n"
                            "3. 写成一句话发给他 — 未开始\n"
                            "4. 多插一条 — 未开始"),
-                  "plan：整张表**逐字**（附在快照末尾，第 10 条第 (3) 块那种写法）", repr(_tbl))
+                  "plan：整张表**原样**（附在快照末尾，第 10 条第 (3) 块那种写法）", repr(_tbl))
         ok &= _ck(_plan.table(("g", 424242)) == "",
                   "plan：没有计划 → 一个字都不加")
         _real_call_p = im._napcat_call
@@ -6751,7 +6751,7 @@ def run():
                   "plan：全部完成 → 自动清空（快照里一个字都不加）")
         _pe = toolkit.call("plan", {"steps": []}, {"key": ("g", 123456789)})
         ok &= _ck(_pe.get("ok") is False and _pe.get("error") == "步骤表不能是空的",
-                  "plan：步骤表空的时候那句话（2026-10-30 逐字定稿）",
+                  "plan：步骤表空的时候那句话（2026-10-30 原样定稿）",
                   repr(_pe.get("error")))
         _ = _wait_ctx
 
@@ -6759,7 +6759,7 @@ def run():
         print()
         _CUR_SECT[0] = "6.z2 四条定稿（persona / A6 安全阀 / 话术）"
         print("=== 6.z2 四条定稿（persona / A6 安全阀 / 话术）===")
-        # ⚠️ （md 第 36 条 / 定稿）：TEMPLATE **整段**是 ——
+        # ⚠️ ：TEMPLATE **整段**是 ——
         #    删了全局「不想说话就只回某个哨兵词」、`你对他的【称呼】` 的方括号照抄。
         #    ⛔ 这段字面量就是钉子：谁把 TEMPLATE 改一个字，这里当场红。
         _TPL = """你的名字是{name}。你是由**{owner}**部署的qq机器人助手。{persona}
@@ -6770,7 +6770,7 @@ def run():
 请你自己判断要不要调用工具，简单的直接答；复杂的，用户要求时，就用 search 查。
 按用户发言的语言回复"""
         ok &= _ck(persona.TEMPLATE == _TPL,
-                  "persona.TEMPLATE **逐字** = 用户给的这版（md 第 36 条）",
+                  "persona.TEMPLATE **原样** = 用户给的这版（md 第 36 条）",
                   repr(persona.TEMPLATE[-30:]))
         _sys0 = persona.system_prompt()
         ok &= _ck("【称呼】" in _sys0,
@@ -6780,7 +6780,7 @@ def run():
         ok &= _ck("对话里每行的格式是【消息前缀】: 他说的话。" in _sys0
                   and "【消息前缀】是那个人的名字，可能是你对他的【称呼】、他在这个群的群名片、"
                       "他的 QQ 昵称，或者他的 QQ 号。" in _sys0,
-                  "persona 那两行**逐字**（【消息前缀】/【称呼】方括号）", _sys0[-30:])
+                  "persona 那两行**原样**（【消息前缀】/【称呼】方括号）", _sys0[-30:])
         ok &= _ck(persona.prompt_chars() <= persona.MAX_CHARS,
                   "运行层提示词还是 ≤ %d 字" % persona.MAX_CHARS,
                   "%d 字" % persona.prompt_chars())
@@ -6792,10 +6792,10 @@ def run():
         _real_call_s = im._napcat_call
         im._napcat_call = lambda ep, payload, **kw: (True, None)     # 群名查不到（别联网）
         try:
-            # C) 随机接话（1%）：没点她 → 第 41 条那句（⚠️ 新版**结尾有句号**）
+            # C) 随机接话（1%）：没点她 → 那句（⚠️ 新版**结尾有句号**）
             _occ_chime = agent._occasion(mk("今天天气不错"), "")
             ok &= _ck(_occ_chime.splitlines()[-1] == _chime_line,
-                      "收尾说明（随机接话）：场合行**逐字** = 第 41 条那句（结尾有句号）",
+                      "收尾说明（随机接话）：场合行**原样** = 第 41 条那句（结尾有句号）",
                       repr(_occ_chime.splitlines()[-1]))
             # A) @她 / 叫名字：一句都不加（人主动找她，必须回；也不给 end_turn）
             _c_at2 = mk("你好", at=True)
@@ -6817,7 +6817,7 @@ def run():
                           repr(_c_tr2.get("_trigger_word")))
                 _occ_tr2 = agent._occasion(_c_tr2, "触发词")
                 ok &= _ck(_occ_tr2.splitlines()[-1] == _trig_line % "摸鱼",
-                          "收尾说明（关键词）：场合行**逐字** = 第 40 条那句（%s = 撞上的词）",
+                          "收尾说明（关键词）：场合行**原样** = 第 40 条那句（%s = 撞上的词）",
                           repr(_occ_tr2.splitlines()[-1]))
             finally:
                 _llm2.runtime_set("triggerWords",
@@ -6846,7 +6846,7 @@ def run():
                            dict(_wc, _wake_depth=3))
         ok &= _ck(_w4.get("ok") is False
                   and _w4.get("error") == "这条唤醒链已经 3 层了，不能再套一个",
-                  "A6：第 4 层直接拒（逐字用那句新话术）", repr(_w4.get("error")))
+                  "A6：第 4 层直接拒（原样用那句新话术）", repr(_w4.get("error")))
         # 每小时最多 6 次：先塞 6 条已叫醒，再来一条到点的 → 不叫醒、只记日志
         reminders._FIRED[:] = [time.time()] * 6
         _called = []
@@ -6946,7 +6946,7 @@ def run():
         ok &= _ck(_body.startswith("这是一个人的记忆，一行一条，行首的数字是编号：\n\n")
                   and "1. 住在杭州" in _body and "刚记下的这一条：\n住在青岛" in _body
                   and '只输出一个 JSON，不要解释：{"删": [1, 3], "加": ["<新句>", …]}' in _body,
-                  "管家：喂法**逐字**用第 11 条（带编号 + 新那条 + 那句输出格式）")
+                  "管家：喂法**原样**用第 11 条（带编号 + 新那条 + 那句输出格式）")
         ok &= _ck(_kr.get("ok") and memory.facts_of(_kq)
                   == ["喜欢喝美式", "现在住在青岛"],
                   "管家：先整理再落库（新事实不再被当重复删掉；第 11 条那句「增删改交给后台」真在跑）",
@@ -7012,12 +7012,12 @@ def run():
                       "%d 条消息" % len(_pm))
             ok &= _ck(_pm[0].get("role") == "user" and _pm[0].get("content")
                       == "<compacted-summary>\n他昨天问过摸鱼的事\n他在杭州上班\n</compacted-summary>",
-                      "B3：滑出去的那段 → 摘要外壳**逐字**（第 15 条）",
+                      "B3：滑出去的那段 → 摘要外壳**原样**（第 15 条）",
                       repr(_pm[0].get("content"))[:60])
             ok &= _ck((_seen_sum.get("body") or "").startswith(
                           "把下面这段对话压成不超过 3 条事实，每条一行、一句话；"
                           "整段尽量不超过 300 字。不要解释\n\n"),
-                      "B3：压缩那次请求的正文**逐字**（第 16 条）",
+                      "B3：压缩那次请求的正文**原样**（第 16 条）",
                       repr((_seen_sum.get("body") or "")[:40]))
             _pm_b = memory.render(_pk2)
             ok &= _ck(_pm_b[0].get("content") == _pm[0].get("content"),
@@ -7066,7 +7066,7 @@ def run():
         #   ③ 先 say 再 end_turn（两步）→ 第 2 次请求的工具里**有** end_turn；返回 ""
         #   ④ say + end_turn 同一批 → say 照常发（`_sends` = 1）；返回 ""、只请求 1 次
         #   ⑤ 全仓：旧的沉默词表 / 判断函数 0 处；给模型看的文本里旧哨兵词 0 处
-        #   ⑥ 第 40 / 41 两句**逐字**（场合行 = 真正进请求的那一行）
+        #   ⑥ 第 40 / 41 两句**原样**（场合行 = 真正进请求的那一行）
         #   ⛔ 不联网、不发消息（发送口打桩、模型 = 假传输层）。
         # ══════════════════════════════════════════════════════════════
         print()
@@ -7117,7 +7117,7 @@ def run():
         _et_desc = [t["function"]["description"] for t in toolkit.schemas({"_trigger": "chime"})
                     if t["function"]["name"] == "end_turn"]
         ok &= _ck(_et_desc == ["主动结束此轮对话，不再说话"],
-                  "end_turn：说明**逐字** = 用户定稿（第 39 条）", repr(_et_desc))
+                  "end_turn：说明**原样** = 用户定稿（第 39 条）", repr(_et_desc))
 
         # ── 假传输层：按批次回；一批 = [("tool", 名, 参数), …] 或 [("text", 内容)] ──
         _ET = {"reqs": [], "sends": []}
@@ -7284,13 +7284,13 @@ def run():
         ok &= _ck(_OLDWORD not in _model_blob,
                   "⑤ 给模型看的文本（persona / 工具目录 / 两句场合行）里 **0 处**旧哨兵词")
 
-        # ⑥ 第 40 / 41 两句逐字（而且真的出现在场合行里）
+        # ⑥ 第 40 / 41 两句原样（而且真的出现在场合行里）
         _L40 = ("刚才对话的「%s」触发了关键词的自动接话功能，并不是有人叫你。"
                 "不需要回就调 end_turn。")
         _L41 = "触发了小概率的自动接话功能，并不是有人叫你。不需要回就调 end_turn。"
         ok &= _ck(agent.TRIGGER_END_TURN_NOTE == _L40
                   and agent.CHIME_END_TURN_NOTE == _L41,
-                  "⑥ 第 40 / 41 条两句**逐字**（含随机那句的句号）",
+                  "⑥ 第 40 / 41 条两句**原样**（含随机那句的句号）",
                   repr(agent.CHIME_END_TURN_NOTE))
         _occ40 = agent._occasion({"key": ("p", 424242), "is_group": False, "user_id": 2,
                                   "text": "今天又摸鱼了", "_trigger_word": "摸鱼"},
@@ -7298,10 +7298,10 @@ def run():
         _occ41 = agent._occasion({"key": ("p", 424242), "is_group": False, "user_id": 2,
                                   "text": "今天天气不错"}, "")
         ok &= _ck(_occ40.splitlines()[-1] == _L40 % "摸鱼",
-                  "⑥ 触发词那轮的场合行 = 第 40 条那句（逐字）",
+                  "⑥ 触发词那轮的场合行 = 第 40 条那句（原样）",
                   repr(_occ40.splitlines()[-1]))
         ok &= _ck(_occ41.splitlines()[-1] == _L41,
-                  "⑥ 随机接话那轮的场合行 = 第 41 条那句（逐字，结尾有句号）",
+                  "⑥ 随机接话那轮的场合行 = 第 41 条那句（原样，结尾有句号）",
                   repr(_occ41.splitlines()[-1]))
 
         # ══════════════════════════════════════════════════════════════
@@ -7379,7 +7379,7 @@ def run():
                       "%r / %r" % (_st_v, _st_clamped))
             ok &= _ck(settings.clamp_note("llm.threadLimit", 999)
                       == "你填了 999，已按 20 存",
-                      "③ 面板提示那句**逐字**：你填了 999，已按 20 存",
+                      "③ 面板提示那句**原样**：你填了 999，已按 20 存",
                       repr(settings.clamp_note("llm.threadLimit", 999)))
             _st_log = _read_log()
             ok &= _ck("设置：" in _st_log and "llm.threadLimit" in _st_log
@@ -7830,7 +7830,7 @@ def run():
         # ══════════════════════════════════════════════════════════════
         # 6.14 设置页——「新部署的人不用碰任何文件」
         #
-        #   ① GET /onboard 的形状：token 只有 ****、检查表 6 项、每块状态
+        #   ① GET /onboard 的形状：token 只有 、检查表 6 项、每块状态
         #   ② onboarding.save：坏值整批不存 / 深合并写 local-config / **立刻生效**
         #   ③ 深合并：只改一个键，同一节的兄弟键（enabled / quoteReply）不丢；
         #      出厂模板 config.json 一个字不动
@@ -7873,7 +7873,7 @@ def run():
             ok &= _ck([c["label"] for c in _ob_s0["checklist"]] == [
                           "机器人 QQ", "共用令牌", "目标群",
                           "模型与密钥", "人设正文", "NapCat 连接"],
-                      "初始化①：检查表那六句**逐字**",
+                      "初始化①：检查表那六句**原样**",
                       "、".join(c["label"] for c in _ob_s0["checklist"]))
             ok &= _ck(_ob_s0["summary"]["text"] in ("可以跑了",) or
                       _ob_s0["summary"]["text"].startswith("还差 "),
@@ -8169,11 +8169,11 @@ def run():
         # ══════════════════════════════════════════════════════════════
         # 6.16 扩展包（知识锁）——
         #
-        #   ① 技能目录：逐字 / 位置（system 之后、历史之前）/ 只发一条 / 内容变了原地替换
-        #   ② `skill` 工具的名字 / 说明 / 参数**逐字**
+        #   ① 技能目录：原样 / 位置（system 之后、历史之前）/ 只发一条 / 内容变了原地替换
+        #   ② `skill` 工具的名字 / 说明 / 参数**原样**
         #   ③ 读技能 → `<skill_content>` 正文原文 + 工具 schema **追加在末尾** + 日志一行
         #   ④ 同时最多 6 个包（LRU：最久没用的摘掉、`_skills_opened` 保留记录、再读回来）
-        #   ⑤ 技能名不存在 → error **逐字**
+        #   ⑤ 技能名不存在 → error **原样**
         #   ⑥ 六条校验各一条（安装与加载同一份实现）
         #   ⑦ 安装（zip / 目录 / 覆盖备份 / 校验不过一个文件都不落地 / 装完加载失败回滚）/ 卸载
         #   ⑧ 停用 → 目录行消失 + 工具解锁不了；启用 → 回来
@@ -8236,7 +8236,7 @@ def run():
             return c
 
         try:
-            # ── ① 技能目录：逐字 / 位置 / 只发一条 / 原地替换 ──
+            # ── ① 技能目录：原样 / 位置 / 只发一条 / 原地替换 ──
             capabilities.clear_sessions()
             _c1 = _cap_ctx(1357911)
             _cmsg = capabilities.catalog_message(_c1)
@@ -8246,7 +8246,7 @@ def run():
                          "</system-reminder>")
             ok &= _ck(_cmsg is not None and _cmsg.get("role") == "user"
                       and _cmsg.get("content") == _want_cat,
-                      "扩展①：技能目录那条消息**逐字**（2026-10-31 批的四段之一）",
+                      "扩展①：技能目录那条消息**原样**（2026-10-31 批的四段之一）",
                       repr((_cmsg or {}).get("content"))[:90])
             _cmsgs, _cbuild = agent._build(_c1, "名字")
             ok &= _ck(len(_cmsgs) >= 2 and _cmsgs[0].get("role") == "system"
@@ -8298,7 +8298,7 @@ def run():
                       "扩展①：description 超 60 字 → 第 2 条不过、目录里不出现",
                       _long_row["status"] + " ｜ " + _long_row["error"])
 
-            # ── ② `skill` 工具逐字 ──
+            # ── ② `skill` 工具原样 ──
             _skill_tool = [t for t in toolkit.TOOLS if t["name"] == "skill"][0]
             _skill_schema = [x for x in toolkit.schemas({})
                              if x["function"]["name"] == "skill"][0]["function"]["parameters"]
@@ -8308,7 +8308,7 @@ def run():
                       and _skill_schema.get("required") == ["name"]
                       and (_skill_schema.get("properties") or {}).get("name", {})
                       .get("description") == "【技能】名字",
-                      "扩展②：`skill` 工具的名字 / 说明 / 参数 / required **逐字**（用户批的那三行）",
+                      "扩展②：`skill` 工具的名字 / 说明 / 参数 / required **原样**（用户批的那三行）",
                       repr(_skill_tool["params"]) + " ｜ " + str(_skill_schema.get("required")))
 
             # ── ③ 读技能 → 正文原文 + schema 追加在末尾 + 日志 ──
@@ -8374,11 +8374,11 @@ def run():
                       "扩展④：再读一次被摘掉的那个 → 它回来、另一个最久没用的被摘",
                       "、".join(_n4b[-7:]))
 
-            # ── ⑤ 技能名不存在 → error 逐字 ──
+            # ── ⑤ 技能名不存在 → error 原样 ──
             _missing = toolkit.call("skill", {"name": "查无此技能"}, _c4)
             ok &= _ck(_missing == {"ok": False,
                                    "error": "没有叫「查无此技能」的【技能】。看【技能目录】里的名字。"},
-                      "扩展⑤：技能名不存在 → error **逐字**（用户批的那句）",
+                      "扩展⑤：技能名不存在 → error **原样**（用户批的那句）",
                       repr(_missing))
 
             # ── ⑥ 六条校验各一条（安装和加载共用这一份 `validate()`）──
@@ -8609,7 +8609,7 @@ def run():
         # ══════════════════════════════════════════════════════════════
         # 6.17 `package` 工具（装 / 卸 / 取文件）+ 文件入站 + 示例外置化
         #
-        #   · 逐字：SKILL.md / NAME / DESC / 五个参数（op=string、confirm=boolean）
+        #   · 原样：SKILL.md / NAME / DESC / 五个参数（op=string、confirm=boolean）
         #   · available = 说话人是主人；别人读技能也不出现、调了回「只有主人能装。」
         #   · op=install / remove 都是**两段式**（第一段只预检、confirm 才动手）
         #   · 预检回执：包名 / 一句话 / 会新增的工具 / 文件清单 / 大小 / sha256 /
@@ -8645,7 +8645,7 @@ def run():
                      "at": time.time(), "evt": {}}
         _pk_other = dict(_pk_owner, user_id="1800000002", key=("g", 1357931))
         try:
-            # ── ① 逐字（SKILL.md / NAME / DESC / 参数类型）──
+            # ── ① 原样（SKILL.md / NAME / DESC / 参数类型）──
             _pk_props = ((_pk_mod.PARAMS if _pk_mod is not None else {}).get("properties")
                          or {})
             ok &= _ck(_pk_mod is not None
@@ -8659,7 +8659,7 @@ def run():
                               for k in ("source", "name", "file"))
                       and _pk_props["confirm"].get("type") == "boolean"
                       and (_pk_mod.PARAMS or {}).get("required") == [],
-                      "包①：`package` 的 NAME / DESC / 五个参数**逐字**"
+                      "包①：`package` 的 NAME / DESC / 五个参数**原样**"
                       "（op=string、source/name/file=string、confirm=boolean）",
                       repr(_pk_props))
             _pk_md = open(os.path.join(_pk_cap.dir, "SKILL.md"), encoding="utf-8").read()
@@ -8673,7 +8673,7 @@ def run():
                       and "只有主人的命令才能安装插件。预检回执要念给主人，他同意了再继续。" in _pk_body
                       and "## 只有名字、没有链接" in _pk_body
                       and "搜不到、仓库是私有的、预检下载失败、超过 5 MB。" in _pk_body,
-                      "包①：SKILL.md 的用户批文本**逐字**（含「只有名字、没有链接」那一段）",
+                      "包①：SKILL.md 的用户批文本**原样**（含「只有名字、没有链接」那一段）",
                       repr(_pk_body[:40]))
 
             # ── ② 只有主人看得见 / 调得动 ──
@@ -8695,7 +8695,7 @@ def run():
                       "、".join(_pk_n1[-3:]))
             ok &= _ck(_pk_mod.run({"op": "install", "source": "x"}, _pk_other)
                       == {"ok": False, "error": "只有主人能装。"},
-                      "包②：主人以外的人调 → 逐字 `只有主人能装。`")
+                      "包②：主人以外的人调 → 原样 `只有主人能装。`")
 
             # ── ③ op=install：预检回执 / 不落地 / confirm 才装 / 装完能跑 ──
             _pk_src = _cap_write(_pk_tmp, "pkgpm", "自检装进来的包", body="第一版标记",
@@ -8796,7 +8796,7 @@ def run():
                       and capabilities.host_allowed("https://ghfast.top/x.zip")
                       and not capabilities.host_allowed("https://github.com@evil.com/x.zip"),
                       "包⑤：来源白名单（含子域 / 镜像站；`user@host` 伪装不行），"
-                      "其余 = 逐字那句")
+                      "其余 = 原样那句")
             base.cfg().setdefault("capability", {})["extraHosts"] = ["example-mirror.com"]
             try:
                 _pk_extra_ok = (capabilities.host_allowed(
@@ -8915,7 +8915,7 @@ def run():
             ok &= _ck((_pk_f3.get("error") or "") == files._TOO_BIG
                       and (_pk_f4.get("error") or "") == files._EXPIRED
                       and (_pk_f5.get("error") or "") == files._NO_FILE,
-                      "包⑥：失败三种人话（太大 / 过期 / 取不到）逐字",
+                      "包⑥：失败三种人话（太大 / 过期 / 取不到）原样",
                       "%r ｜ %r ｜ %r" % (_pk_f3.get("error"), _pk_f4.get("error"),
                                           _pk_f5.get("error")))
             ok &= _ck("没找到这个文件" in (_pk_f6.get("error") or "")
