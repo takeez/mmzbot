@@ -7907,17 +7907,17 @@ def run():
             _ob_s0 = _ob.snapshot()
             _ob_txt = json.dumps(_ob_s0, ensure_ascii=False)
             _ob_tok = str(base.napcat_token() or "")
-            ok &= _ck(_ob_s0.get("ok") and len(_ob_s0.get("checklist") or []) == 6
+            ok &= _ck(_ob_s0.get("ok") and len(_ob_s0.get("checklist") or []) == 7
                       and set(_ob_s0.get("blocks") or {}) == set("abcdefg"),
-                      "初始化①：/onboard 有 6 项检查表 + 每块状态（a~g）",
+                      "初始化①：/onboard 有 7 项检查表 + 每块状态（a~g）",
                       str([c["key"] for c in _ob_s0.get("checklist") or []]))
             ok &= _ck(_ob_s0["values"]["bot.token"] in ("****", "")
                       and (not _ob_tok or _ob_tok not in _ob_txt),
                       "初始化①：token **永远不回明文**（只有 ****）")
             ok &= _ck([c["label"] for c in _ob_s0["checklist"]] == [
                           "机器人 QQ", "共用令牌", "目标群",
-                          "模型与密钥", "人设正文", "NapCat 连接"],
-                      "初始化①：检查表那六句**原样**",
+                          "模型与密钥", "人设正文", "NapCat 连接", "语义记忆"],
+                      "初始化①：检查表那七句**原样**",
                       "、".join(c["label"] for c in _ob_s0["checklist"]))
             ok &= _ck(_ob_s0["summary"]["text"] in ("可以跑了",) or
                       _ob_s0["summary"]["text"].startswith("还差 "),

@@ -124,7 +124,7 @@ def _cli_take(argv, flag):
 
 from fgbot.cli import (cli_cap_check, cli_cap_install, cli_cap_list,  # noqa: E402
                        cli_cap_remove, cli_check, cli_help, cli_init,
-                       cli_list_models, cli_persona, cli_set)
+                       cli_list_models, cli_persona, cli_set, cli_version)
 from fgbot import selftest as _st      # noqa: E402
 
 
@@ -154,6 +154,8 @@ if __name__ == "__main__":
             print(_json.dumps({"rc": rc, "sections": selftest_sections()},
                               ensure_ascii=False))
         sys.exit(rc)
+    if "--version" in args:
+        sys.exit(cli_version())
     if "--help" in args or "-h" in args:
         sys.exit(cli_help())
     if "--check" in args:

@@ -2868,6 +2868,12 @@ function drawCapabilities(){
     var bits = [];
     bits.push(c.has_tools ? ("带工具 " + (c.tools || []).join("、")) : "只有说明");
     bits.push(c.builtin ? "仓库自带" : "装的");
+    if (c.provenance && c.provenance["来源"]) {
+      var pv = c.provenance;
+      bits.push("来源 " + String(pv["来源"]).replace(/^.*[\\/]/, "").slice(0, 40));
+      if (pv.sha256) bits.push("sha256 " + String(pv.sha256).slice(0, 12));
+      if (pv["装的时间"]) bits.push(String(pv["装的时间"]));
+    }
     return '<div class="fact"><span class="dot" style="background:' +
       (c.loaded && c.enabled ? "var(--ok)" : "var(--faint)") + '"></span>' +
       '<div class="txt"><b>' + esc(c.name) + "</b> " + capChip(c) +

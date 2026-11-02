@@ -382,6 +382,26 @@ def state_path(name):
 
 # ── 日志 ────────────────────────────────────────────────────────────
 
+LOG_MAX_BYTES = 5 * 1024 * 1024      # 5 MB 一轮
+LOG_KEEP = 2                        # 留 bot.log.1 / bot.log.2
+
+
+def _rotate_if_big():
+    """日志到 5 MB 就滚一下（手机上跑一个月会几十 MB，起不来时才想起它就晚了）。"""
+    try:
+        if not os.path.exists(LOG_PATH):
+            return
+        if os.path.getsize(LOG_PATH) < LOG_MAX_BYTES:
+            return
+        for i in range(LOG_KEEP, 0, -1):
+            src = LOG_PATH if i == 1 else "%s.%d" % (LOG_PATH, i - 1)
+            dst = "%s.%d" % (LOG_PATH, i)
+            if os.path.exists(src):
+                os.replace(src, dst)
+    except Exception:
+        pass
+
+
 def log(msg):
     """一行一条，时间戳在前。
 
@@ -399,6 +419,7 @@ def log(msg):
             d = os.path.dirname(LOG_PATH)
             if d and not os.path.isdir(d):
                 os.makedirs(d, exist_ok=True)
+            _rotate_if_big()
             with open(LOG_PATH, "a", encoding="utf-8") as f:
                 f.write(line + "\n")
         except Exception:

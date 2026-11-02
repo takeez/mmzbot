@@ -403,6 +403,28 @@ def _owner_title():
         return ""
 
 
+def _memory_ready():
+    """语义记忆能不能用：三个依赖 + 三个模型文件。
+
+    ⚠️ 只查"安不安全"，不真去 import onnxruntime（那个要加载动态库，几百毫秒）。
+    """
+    import importlib.util as _iu
+    deps = [n for n in ("onnxruntime", "tokenizers", "numpy")
+            if _iu.find_spec(n) is None]
+    try:
+        from . import embed
+        root = os.path.join(base.DATA_DIR, embed.SUBDIR)
+        files = [embed.ONNX_REL, embed.DATA_REL, "tokenizer.json"]
+        miss = [f for f in files if not os.path.isfile(os.path.join(root, f))]
+    except Exception:
+        miss = []
+    if deps:
+        return False, "缺 Python 依赖：" + "、".join(deps)
+    if miss:
+        return False, "缺模型文件：跑 tools/fetch_model.py"
+    return True, ""
+
+
 def snapshot():
     """面板 / CLI 要的全部现算值。**一个 token 明文都没有。**"""
     b = base.bot_cfg() or {}
@@ -439,6 +461,7 @@ def snapshot():
         "g": {"ok": True, "why": ""},
     }
 
+    _mem_ok, _mem_why = _memory_ready()
     checklist = [
         {"key": "qq", "label": "机器人 QQ", "ok": qq_ok,
          "hint": "" if qq_ok else "在机器人身份中填写"},
@@ -452,6 +475,8 @@ def snapshot():
          "hint": "" if persona_text else "在人设页填写正文"},
         {"key": "napcat", "label": "NapCat 连接", "ok": reachable,
          "hint": "" if reachable else reach_why},
+        {"key": "memory", "label": "语义记忆", "ok": _mem_ok,
+         "hint": "" if _mem_ok else _mem_why},
     ]
     missing = sum(1 for c in checklist if not c["ok"])
 

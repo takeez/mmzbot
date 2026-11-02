@@ -9,6 +9,24 @@ import urllib.request
 from . import base, capabilities
 
 
+def cli_version():
+    """`--version`：版本号（和 pyproject 的 version 一致）。"""
+    ver = "0.1.0"
+    try:
+        import os as _os
+        p = _os.path.join(_os.path.dirname(_os.path.dirname(
+            _os.path.abspath(__file__))), "pyproject.toml")
+        with open(p, encoding="utf-8") as f:
+            for line in f:
+                if line.strip().startswith("version"):
+                    ver = line.split("=", 1)[1].strip().strip('"')
+                    break
+    except Exception:
+        pass
+    print("机魂小悦 %s" % ver)
+    return 0
+
+
 def cli_help():
     print("""用法：
   python3 phone-bot-v2.py                     起服务

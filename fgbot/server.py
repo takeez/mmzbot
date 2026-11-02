@@ -892,6 +892,11 @@ class Handler(BaseHTTPRequestHandler):
                     evt = json.loads(body.decode("utf-8", "replace") or "{}")
                     ptype = evt.get("post_type")
                     if ptype == "message":
+                        if _msg_dupe(evt):
+                            base.log("重复上报，跳过（message_id=%s）"
+                                     % evt.get("message_id"))
+                            self._empty(204)
+                            return
                         threading.Thread(target=_on_message, args=(evt, body), daemon=True).start()
                     elif ptype == "notice":
                         threading.Thread(target=agent.on_notice, args=(evt,), daemon=True).start()
@@ -1226,6 +1231,69 @@ def status():
     }
 
 
+# 同一条消息被 NapCat 重推（网络抖动 / 她回得慢）时，别回两遍：
+# 按 message_id 记最近 512 条，只活在内存里。
+_SEEN_LOCK = threading.Lock()
+_SEEN_MSG = {}
+_SEEN_MSG_ORDER = []
+_SEEN_MSG_MAX = 512
+
+
+def _msg_dupe(evt):
+    """这条消息见过了吗？见过返回 True（调用方直接丢）。"""
+    try:
+        mid = evt.get("message_id")
+        if mid in (None, ""):
+            return False
+        key = str(mid)
+        with _SEEN_LOCK:
+            if key in _SEEN_MSG:
+                return True
+            _SEEN_MSG[key] = time.time()
+            _SEEN_MSG_ORDER.append(key)
+            while len(_SEEN_MSG_ORDER) > _SEEN_MSG_MAX:
+                old = _SEEN_MSG_ORDER.pop(0)
+                _SEEN_MSG.pop(old, None)
+        return False
+    except Exception:
+        return False
+
+
+def _take_instance_lock():
+    """在数据目录里拿一把独占文件锁；拿不到 = 已经有实例在跑。
+
+    ⚠️ fcntl 只有 posix 有；Windows 上用 msvcrt 的锁。都没有就退化成"创建锁文件"，
+       只是别让两个实例悄悄共用一个数据目录。
+    """
+    path = os.path.join(base.DATA_DIR, "instance.lock")
+    try:
+        os.makedirs(base.DATA_DIR, exist_ok=True)
+        fh = open(path, "a+")
+    except Exception:
+        return True                      # 拿不到锁文件也不该起不来
+    try:
+        try:
+            import fcntl
+            fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except ImportError:
+            try:
+                import msvcrt
+                fh.seek(0)
+                msvcrt.locking(fh.fileno(), msvcrt.LK_NBLCK, 1)
+            except ImportError:
+                pass
+        except OSError:
+            fh.close()
+            return None
+        return fh
+    except OSError:
+        try:
+            fh.close()
+        except Exception:
+            pass
+        return None
+
+
 def serve():
     if not base.napcat_token():
         # A4①：token 为空 = **拒绝服务**（不再"空就放行"）。
@@ -1235,6 +1303,12 @@ def serve():
                  "（公网一映射，空的令牌等于让任何人伪造上报让她说话）")
         print("✗ 没有令牌：拒绝启动（见 bot.log）")
         sys.exit(2)
+    # 单实例闸：同一个数据目录只许一个进程在跑（两个实例会互相覆盖 memory.json 等状态）
+    _lock_handle = _take_instance_lock()
+    if _lock_handle is None:
+        base.log("✗ 这个数据目录已经有一个实例在跑（%s）—— 拒绝再起一个" % base.DATA_DIR)
+        print("✗ 已经有一个实例在用这个数据目录：%s" % base.DATA_DIR)
+        sys.exit(3)
     port = int(base.cfg().get("port") or 17383)
     # 监听地址：`config.json` 的 `host`（默认 0.0.0.0 = 所有网卡，局域网/云端都能连）。
     # 想只给本机用就填 127.0.0.1（面板也会跟着只在本机打得开）。

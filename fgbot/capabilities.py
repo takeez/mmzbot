@@ -744,16 +744,19 @@ def _load_dir(path, builtin=False, folder_name=None):
         if isinstance(_t, dict):
             _t["_dir"] = path
     cap.body = info.get("body") or ""
-    # ⚠️ 校验是静态的（不执行对方代码）；**真正加载**才 import —— 这是运行时，
-    #    用户已经点过"装"了，行为要和以前一致（工具函数得是真函数）。
+    # 主进程**不 import 任何包代码**：
+    #   · 工具定义由子进程 `--describe` 给出（name/desc/params/timeout）；
+    #   · `available(ctx)` 由子进程 `--available` 给出（结果按 mtime + ctx 缓存）；
+    #   · 真正的工具调用本来就跑在子进程里（`_run` → `run_isolated`）。
+    # 只有自检（打桩跨不了进程）才走进程内 import。
     cap.mod = info.get("mod")
     if cap.ok:
         tool_py = os.path.join(path, "tool.py")
-        if os.path.isfile(tool_py):
+        if not os.path.isfile(tool_py):
+            cap.mod = None
+        elif _in_selftest():
             try:
                 cap.mod = _import_tool(tool_py, folder)
-                # 工具定义（含 run 函数）以**真正 import 出来的模块**为准：
-                # 校验用的是静态快照，里面的 run 只是个占位。
                 real_tools, _why = _tools_of(cap.mod)
                 if real_tools:
                     for _t in real_tools:
@@ -764,7 +767,14 @@ def _load_dir(path, builtin=False, folder_name=None):
                 cap.ok = False
                 base.log("扩展包 %s 载入失败：%s: %s" % (folder, type(e).__name__, e))
         else:
-            cap.mod = None
+            desc_tools, why = describe_tools(path)
+            if desc_tools is None:
+                cap.ok = False
+                base.log("扩展包 %s 载入失败：%s" % (folder, (why or "")[:200]))
+            else:
+                for _t in desc_tools:
+                    _t["_dir"] = path
+                cap.tools = desc_tools
     with _LOCK:
         _CACHE[path] = cap
         prev = _LOGGED_BAD.get(path)
@@ -829,6 +839,18 @@ def reload_all():
         _LOGGED_BAD.clear()
 
 
+def provenance_of(cap_dir):
+    """读包里那份 `.provenance.json`（没有就返回空 dict）。"""
+    try:
+        path = os.path.join(cap_dir, ".provenance.json")
+        if not os.path.isfile(path):
+            return {}
+        d = json.loads(_text(path) or "{}")
+        return d if isinstance(d, dict) else {}
+    except Exception:
+        return {}
+
+
 def list():
     """面板 / CLI 用：一行一个包（含校验失败的、已停用的）。"""
     out = []
@@ -846,6 +868,7 @@ def list():
             "error": cap.error_text,
             "builtin": cap.builtin,
             "dir": cap.dir,
+            "provenance": provenance_of(cap.dir),
             "can_remove": (not cap.builtin) and not _is_builtin_dir(cap.dir),
             "rules": cap.rules,
         })
@@ -888,6 +911,13 @@ def _json_copy(obj):
 
 def _tool_available(t, ctx):
     """这个工具现在该不该出现在目录里（包的 `available(ctx)`；抛异常 = 不可见）。"""
+    pkg_dir = t.get("_dir")
+    if pkg_dir and not _in_selftest() and t.get("_has_available"):
+        sig = ""
+        hit = _CACHE.get(os.path.abspath(pkg_dir))
+        if hit is not None:
+            sig = hit.sig
+        return available_isolated(pkg_dir, sig, ctx)
     fn = t.get("available")
     if fn is None:
         return True
@@ -1147,38 +1177,169 @@ def _in_selftest():
     return os.environ.get("MMZBOT_SELFTEST") == "1"
 
 
+CTX_KEYS = ("user_id", "group_id", "is_group", "key", "who", "text", "name",
+            "is_owner", "role", "at", "reply_to")
+
+
 def _ctx_json(ctx):
-    """ctx 里能进 JSON 的留下，别的用字符串兜底（子进程只读，不改）。"""
+    """只把**工具真需要**的那几个键递进子进程（白名单，不是黑名单）。
+
+    以前是把 ctx 整个序列化（连 `evt` 原始上报、`raw_body`、图片都进去了）——
+    包能顺手读到整条消息、甚至用户发来的原始 JSON，没必要。
+    """
     out = {}
     if not isinstance(ctx, dict):
         return out
-    for k, v in ctx.items():
-        if isinstance(k, str) and k.startswith("_"):
+    for k in CTX_KEYS:
+        if k not in ctx:
             continue
+        v = ctx[k]
         if v is None or isinstance(v, (bool, int, float, str)):
             out[k] = v
-        elif isinstance(v, (list, tuple, dict)):
-            try:
-                json.dumps(v, ensure_ascii=False)
-                out[k] = v
-            except Exception:
-                out[k] = str(v)[:500]
+        elif isinstance(v, (list, tuple)):
+            out[k] = [str(x)[:200] for x in v][:20]
+        elif isinstance(v, dict):
+            out[k] = {str(kk)[:40]: str(vv)[:200] for kk, vv in v.items()}
         else:
             out[k] = str(v)[:200]
     return out
 
 
+def _child_cwd():
+    """给子进程一个空的工作目录（别让 `open("config.json")` 这类相对路径读到仓库里的东西）。"""
+    try:
+        p = os.path.join(tempfile.gettempdir(), "mmzbot-cap-run")
+        os.makedirs(p, exist_ok=True)
+        return p
+    except Exception:
+        return tempfile.gettempdir()
+
+
 def _runner_env():
-    env = dict(os.environ)
-    env["PYTHONPATH"] = REPO_ROOT + (os.pathsep + env["PYTHONPATH"]
-                                     if env.get("PYTHONPATH") else "")
-    env["PYTHONIOENCODING"] = "utf-8"
-    env.setdefault("MMZBOT_DATA", base.DATA_DIR)
+    """子进程的环境：**只给必须的**（别把整份 os.environ 递进去）。
+
+    包要读配置/数据时走 `MMZBOT_DATA` 就够；其余（HTTP 代理、第三方 key、CI 变量）
+    不递 —— 少一份能拿到的东西。
+    """
+    env = {
+        "PATH": os.environ.get("PATH", ""),
+        "PYTHONPATH": REPO_ROOT,
+        "PYTHONIOENCODING": "utf-8",
+        "MMZBOT_DATA": base.DATA_DIR,
+        "MMZBOT_CAP_CHILD": "1",
+    }
+    for k in ("HOME", "TMPDIR", "TEMP", "TMP", "LANG", "LC_ALL", "SYSTEMROOT"):
+        if os.environ.get(k):
+            env[k] = os.environ[k]
     return env
+
+
+MEM_LIMIT_BYTES = 1024 * 1024 * 1024      # 1 GB
+CPU_LIMIT_SECONDS = 60
+
+
+def _child_preexec():
+    """子进程启动前设资源上限（只在 posix 生效；Windows 没有 resource 模块）。"""
+    try:
+        import resource
+    except Exception:
+        return None
+
+    def _apply():
+        try:
+            resource.setrlimit(resource.RLIMIT_AS, (MEM_LIMIT_BYTES, MEM_LIMIT_BYTES))
+        except Exception:
+            pass
+        try:
+            resource.setrlimit(resource.RLIMIT_CPU, (CPU_LIMIT_SECONDS, CPU_LIMIT_SECONDS))
+        except Exception:
+            pass
+        try:
+            resource.setrlimit(resource.RLIMIT_NPROC, (64, 64))
+        except Exception:
+            pass
+    return _apply
 
 
 def _runner_argv(args):
     return [sys.executable, "-X", "utf8", "-m", "fgbot.caprunner"] + [str(a) for a in args]
+
+
+_AVAIL_CACHE = {}           # (目录, 签名, ctx 摘要) -> (bool, 到期时刻)
+AVAIL_TTL = 60.0
+
+
+def describe_tools(pkg_dir, timeout=30.0):
+    """子进程里读**全部**工具定义；返回 (工具列表, 原因)。"""
+    try:
+        p = subprocess.run(_runner_argv(["--dir", pkg_dir, "--describe"]),
+                           cwd=REPO_ROOT, env=_runner_env(), capture_output=True,
+                           text=True, encoding="utf-8", errors="replace",
+                           timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return None, "读取工具定义超时（包在 import 阶段卡住了）"
+    for line in reversed((p.stdout or "").strip().splitlines()):
+        try:
+            d = json.loads(line)
+        except Exception:
+            continue
+        if d.get("ok"):
+            tools = d.get("tools") or []
+            out = []
+            for t in tools:
+                if not isinstance(t, dict) or not t.get("name"):
+                    continue
+                out.append({
+                    "name": t["name"],
+                    "desc": t.get("description") or "",
+                    "params": t.get("params") or {"type": "object", "properties": {}},
+                    "timeout": t.get("timeout") or DEFAULT_TIMEOUT,
+                    "available": None,
+                    "_has_available": bool(t.get("has_available")),
+                    "_available_from_module": bool(t.get("_available_from_module")),
+                    "_dir": pkg_dir,
+                })
+            if not out:
+                return None, "tool.py 里没读到工具定义"
+            return out, ""
+        return None, "tool.py 加载失败：%s" % str(d.get("error") or "")[-300:]
+    return None, "runner 没有返回结果（退出码 %s）：%s" % (p.returncode, (p.stderr or "")[-300:])
+
+
+def _ctx_digest(ctx):
+    keep = {k: str(ctx.get(k))[:60] for k in ("user_id", "group_id", "is_group", "key")
+            if isinstance(ctx, dict) and k in ctx}
+    return json.dumps(keep, ensure_ascii=False, sort_keys=True)
+
+
+def available_isolated(pkg_dir, sig, ctx, timeout=15.0):
+    """子进程里跑一次 `available(ctx)`；同包同 mtime 同 ctx 的结果缓存 60 秒。"""
+    key = (pkg_dir, sig, _ctx_digest(ctx))
+    now = time.time()
+    hit = _AVAIL_CACHE.get(key)
+    if hit and hit[1] > now:
+        return hit[0]
+    payload = json.dumps({"ctx": _ctx_json(ctx)}, ensure_ascii=False)
+    try:
+        p = subprocess.run(_runner_argv(["--dir", pkg_dir, "--available"]),
+                           cwd=REPO_ROOT, env=_runner_env(), input=payload,
+                           capture_output=True, text=True, encoding="utf-8",
+                           errors="replace", timeout=timeout)
+        val = False
+        for line in reversed((p.stdout or "").strip().splitlines()):
+            try:
+                d = json.loads(line)
+            except Exception:
+                continue
+            val = bool(d.get("value")) and bool(d.get("ok"))
+            break
+    except Exception:
+        val = False
+    _AVAIL_CACHE[key] = (val, now + AVAIL_TTL)
+    if len(_AVAIL_CACHE) > 500:
+        for k in [k for k, v in _AVAIL_CACHE.items() if v[1] <= now]:
+            _AVAIL_CACHE.pop(k, None)
+    return val
 
 
 def describe_isolated(pkg_dir, timeout=30.0):
@@ -1211,8 +1372,11 @@ def run_isolated(pkg_dir, tool_name, args, ctx, timeout=None):
     kw = {}
     if os.name == "posix":
         kw["start_new_session"] = True          # 方便整组 kill
+        _pre = _child_preexec()
+        if _pre is not None:
+            kw["preexec_fn"] = _pre             # 内存 / CPU / 进程数上限
     p = subprocess.Popen(_runner_argv(["--dir", pkg_dir, "--tool", tool_name]),
-                         cwd=REPO_ROOT, env=_runner_env(),
+                         cwd=_child_cwd(), env=_runner_env(),
                          stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE, text=True,
                          encoding="utf-8", errors="replace", **kw)
@@ -1391,7 +1555,30 @@ def _verify_load(dest):
     return (probe is not None), (why or "")
 
 
-def _record_provenance(src, dest, tools):
+def _notify_owner(name, tools, origin):
+    """装好之后给主人发一条私聊（包是"代码"，装了什么主人该知道）。
+
+    ⚠ 失败只记日志：通知不成功不能影响安装本身。
+    """
+    if _in_selftest():
+        return                      # 自检不打真网络；这条只是通知
+    try:
+        from . import im, users
+        owner = users.owner_ident()
+        uid = str((owner or {}).get("id") or "")
+        if not uid:
+            return
+        bits = ["装好了扩展包「%s」" % name]
+        if tools:
+            bits.append("带工具 " + "、".join(t["name"] for t in tools))
+        if origin:
+            bits.append("来源 " + str(origin)[:120])
+        im.send_private(uid, "，".join(bits) + "。")
+    except Exception as e:
+        base.log("扩展：给主人发通知没成（不影响安装）：%r" % (e,))
+
+
+def _record_provenance(src, dest, tools, origin=None):
     """把"这个包从哪来、内容指纹多少"记在**包自己的目录里**（`.provenance.json`）。
 
     ⚠️ 不放在数据目录根下：那样会多出一个状态文件，卸载 / 回滚 / 自检都要额外照顾它。
@@ -1399,10 +1586,11 @@ def _record_provenance(src, dest, tools):
     ⚠️ 这里**只写文件**，不 import 包、不跑包代码。
     """
     try:
-        src_abs = os.path.abspath(str(src or ""))
-        sha = _sha256_path(src_abs) if os.path.isfile(src_abs) else _sha256_dir(dest)
+        src_abs = os.path.abspath(str(src or "")) if src else ""
+        sha = (_sha256_path(src_abs) if (src_abs and os.path.isfile(src_abs))
+               else _sha256_dir(dest))
         rec = {
-            "来源": src_abs,
+            "来源": origin or src_abs,
             "sha256": sha,
             "工具": [t["name"] for t in tools or []],
             "装的时间": time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -1416,7 +1604,7 @@ def _record_provenance(src, dest, tools):
         base.log("扩展：来源记录没写成（不影响安装）：%r" % (e,))
 
 
-def install(src):
+def install(src, origin=None):
     """从 zip / 文件夹装一个包（docs §5 那五步）。返回 `{"ok","message","name","rules"}`。
 
     ① 解到临时目录 → 校验（六条）
@@ -1480,11 +1668,12 @@ def install(src):
             return {"ok": False, "name": name, "rules": info["rules"], "message": msg}
         with _LOCK:
             _CACHE.pop(os.path.abspath(dest), None)
-        _record_provenance(src, dest, tools)
+        _record_provenance(None if origin else src, dest, tools, origin=origin)
         base.log("扩展：装好了 %s（%s%s）"
                  % (name, "带工具 " + "、".join(t["name"] for t in tools)
                     if tools else "只有说明",
                     "，旧版本备份在 " + os.path.basename(backup) if backup else ""))
+        _notify_owner(name, tools, origin)
         return {"ok": True, "name": name, "rules": info["rules"],
                 "message": "装好了「%s」%s" % (name, "（旧版本备份成 %s）"
                                               % os.path.basename(backup) if backup else "")}
@@ -1871,6 +2060,7 @@ def stage_source(src, zip_only=False, timeout=30):
     with _LOCK:
         _prune_tickets()
         _TICKETS[token] = {"src": os.path.abspath(s), "temp": temp,
+                           "origin": str(src or "").strip(),
                            "at": time.time()}
     return token, rc
 
@@ -1884,7 +2074,7 @@ def install_ticket(ticket):
     if not t:
         return {"ok": False, "message": ERR_TICKET, "name": "", "rules": []}
     try:
-        return install(t["src"])
+        return install(t["src"], origin=t.get("origin") or None)
     finally:
         if t.get("temp"):
             try:

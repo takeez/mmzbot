@@ -35,6 +35,9 @@ ProtectKernelModules=true
 ProtectControlGroups=true
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 SystemCallFilter=@system-service
+CapabilityBoundingSet=
+AmbientCapabilities=
+MemoryMax=1G
 SystemCallArchitectures=native
 
 [Install]

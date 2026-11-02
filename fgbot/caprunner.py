@@ -58,9 +58,9 @@ def _param_desc(mod):
     return None
 
 
-def _one(mod):
+def _one(item):
     for attr in ("NAME", "name"):
-        v = getattr(mod, attr, None)
+        v = item.get(attr) if isinstance(item, dict) else getattr(item, attr, None)
         if isinstance(v, str) and v.strip():
             name = v.strip()
             break
@@ -68,12 +68,36 @@ def _one(mod):
         raise ValueError("tool.py 里没有 NAME")
     desc = ""
     for attr in ("DESC", "desc"):
-        v = getattr(mod, attr, None)
+        v = item.get(attr) if isinstance(item, dict) else getattr(item, attr, None)
         if isinstance(v, str):
             desc = v.strip()
             break
-    return {"name": name, "description": desc, "params": _param_desc(mod),
-            "timeout": getattr(mod, "TIMEOUT", None)}
+    params = item.get("PARAMS") if isinstance(item, dict) else _param_desc(item)
+    if not isinstance(params, dict):
+        params = _param_desc(item) if not isinstance(item, dict) else None
+    to = item.get("TIMEOUT") if isinstance(item, dict) else getattr(item, "TIMEOUT", None)
+    avail = (item.get("available") if isinstance(item, dict)
+             else getattr(item, "available", None))
+    return {"name": name, "description": desc, "params": params, "timeout": to,
+            "has_available": callable(avail)}
+
+
+def _all(mod):
+    listed = getattr(mod, "TOOLS", None)
+    if isinstance(listed, (list, tuple)) and listed:
+        out = []
+        for it in listed:
+            t = _one(it)
+            if not t.get("has_available") and callable(getattr(mod, "available", None)):
+                t["has_available"] = True
+                t["_available_from_module"] = True
+            out.append(t)
+        return out
+    t = _one(mod)
+    if callable(getattr(mod, "available", None)):
+        t["has_available"] = True
+        t["_available_from_module"] = True
+    return [t]
 
 
 def main(argv=None):
@@ -81,6 +105,7 @@ def main(argv=None):
     ap.add_argument("--dir", required=True)
     ap.add_argument("--tool", default="")
     ap.add_argument("--describe", action="store_true")
+    ap.add_argument("--available", action="store_true")
     args = ap.parse_args(argv)
 
     pkg_dir = os.path.abspath(args.dir)
@@ -94,12 +119,28 @@ def main(argv=None):
 
     if args.describe:
         try:
-            print(json.dumps({"ok": True, "tool": _one(mod)}, ensure_ascii=False))
+            print(json.dumps({"ok": True, "tools": _all(mod)}, ensure_ascii=False))
             return 0
         except BaseException as e:
             print(json.dumps({"ok": False, "stage": "describe", "error": repr(e)},
                              ensure_ascii=False))
             return 3
+
+    if args.available:
+        try:
+            payload = json.loads(sys.stdin.read() or "{}")
+            ctx = payload.get("ctx") or {}
+            fn = getattr(mod, "available", None)
+            if not callable(fn):
+                print(json.dumps({"ok": True, "value": True}, ensure_ascii=False))
+                return 0
+            print(json.dumps({"ok": True, "value": bool(fn(ctx))}, ensure_ascii=False))
+            return 0
+        except BaseException:
+            print(json.dumps({"ok": False, "value": False,
+                              "error": traceback.format_exc(limit=3)[-800:]},
+                             ensure_ascii=False))
+            return 7
 
     try:
         payload = json.loads(sys.stdin.read() or "{}")
