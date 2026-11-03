@@ -103,7 +103,17 @@ proot-distro login "$DISTRO" -- bash -lc "cd '$MMZBOT_DIR' && MMZBOT_DATA='$MMZB
 # 失败：检查数据目录、真实 QQ 号/群号/模型密钥；配置与启动时必须指向同一目录
 ```
 
-## 6. 建立 Termux 入口并启动本体
+## 6. 可选：配置增强网页搜索
+
+推荐配置百度千帆搜索 API Key；未配置时将使用必应 RSS，搜索能力可能有所下降。将 `<搜索服务API密钥>` 替换为实际密钥：
+
+```bash
+proot-distro login "$DISTRO" -- bash -lc "cd '$MMZBOT_DIR' && MMZBOT_DATA='$MMZBOT_DATA' python3 phone-bot-v2.py --set search.apiKey='<搜索服务API密钥>'"
+# 期望：出现“✓ 已保存（1 项）”
+# 失败：确认使用与本体配置相同的数据目录，并检查密钥
+```
+
+## 7. 建立 Termux 入口并启动本体
 
 ```bash
 ROOTFS="$PREFIX/var/lib/proot-distro/installed-rootfs/$DISTRO"

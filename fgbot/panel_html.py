@@ -672,6 +672,8 @@ PAGE = r"""<!DOCTYPE html>
         <input id="qsKey" type="password" autocomplete="new-password" spellcheck="false" data-enter="setupNext" placeholder="填写模型服务密钥"></div>
       <div class="field"><label for="qsModel">模型名</label>
         <input id="qsModel" type="text" autocomplete="off" spellcheck="false" data-enter="setupNext" placeholder="填写服务提供的模型 ID"></div>
+      <div class="field"><label for="qsSearchKey">搜索密钥（可选）</label>
+        <input id="qsSearchKey" type="password" autocomplete="new-password" spellcheck="false" placeholder="百度千帆的 key；不填用必应"></div>
       <p class="hint">保存后可在模型页管理提供商和模型目录。</p>
     </div>
 

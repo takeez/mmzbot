@@ -50,6 +50,7 @@ proot-distro list
 - 一次收集以下信息：名称（`agent.name`，默认 `机魂小悦`，可自定义）；唤醒词（`agent.wakeWords`，默认 `小悦`，可提供多个或留空）。名称或唤醒词出现在消息开头时会唤醒机魂小悦回复。再收集真实 QQ 号、目标群号、模型 API Key，并在取得 Key 后用 `--list-models` 查询模型及其支持的思考强度，再请用户选择。配置前将用户选定的名称和唤醒词填入 `BOTNAME`、`WAKEWORDS`；没有额外唤醒词时令 `WAKEWORDS=''`。不要猜测配置值或使用占位值。
 - Windows 部署还需用户先登录 Windows QQ。扫码是另一处需要用户配合的步骤：Agent 先配置 NapCat 网络、重启 NapCat并获取实时二维码，再交给用户扫描。
 - 默认端口：机魂小悦服务 `17383`、NapCat API `3000`、NapCat WebUI `6099`。不要将 `3000` 或 `6099` 暴露到公网。
+- 网页搜索 API Key 为可选项：在对应安装指南的本体配置步骤后，可用 `python3 phone-bot-v2.py --set search.apiKey=<搜索服务API密钥>` 配置（Windows 使用 `python`；Docker、Termux 请使用各自指南中的命令）。推荐百度千帆搜索；未配置时回退到必应 RSS，搜索能力可能有所下降。
 - 入口为 `python3 phone-bot-v2.py`（Windows 使用 `python`）；不带参数时启动服务。
 - `--check` 共六项：前五项检查是否填写，第六项探测 NapCat（未登录时也会失败）。退出码 `0` 表示通过、`1` 表示配置缺失或探测失败、`2` 表示参数错误。`10000`、`1234567890`、`987654321`、`sk-PLACEHOLDER…` 等占位值不通过。
 - 向量语义记忆是必需组件：必须安装 `requirements.txt` 中的依赖并下载 GitHub Release 模型。依赖或模型缺失时程序可能启动，但记忆检索不可用，安装不能验收通过。模型在首次记忆查询或写入时加载；之后应确认日志出现 `语义召回：模型加载好了`。

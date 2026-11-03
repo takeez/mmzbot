@@ -2448,6 +2448,7 @@ function setupSaveLegacy(btn){
   var empty = function(id){ return String(($("#" + id) || {}).value || "").trim() };
   var oq = empty("qsOwnerQQ"), qq = empty("qsQQ"), tok = empty("qsToken");
   var gs = empty("qsGroups"), base = empty("qsBase"), key = empty("qsKey"), mdl = empty("qsModel");
+  var skey = empty("qsSearchKey");
   var nm = empty("qsName"), ot = empty("qsOwnerTitle"), pe = String(($("#qsPersona") || {}).value || "");
   if (oq) vals["bot.ownerQQ"] = oq;
   if (qq) vals["bot.selfId"] = qq;
@@ -2456,6 +2457,7 @@ function setupSaveLegacy(btn){
   if (base) vals["llm.baseUrl"] = base;
   if (mdl) vals["llm.model"] = mdl;
   if (key) vals["llm.apiKey"] = key;
+  if (skey) vals["search.apiKey"] = skey;
   if (nm) vals["agent.name"] = nm;
   if (ot) vals["bot.ownerCallName"] = ot;
   busy(btn, true);
@@ -2497,6 +2499,7 @@ function setupSave(btn){
   var nap = tidyUrl(val("qsNapUrl")), base = tidyUrl(val("qsBase"));
   var key = deepTrim(val("qsKey")), mdl = val("qsModel");
   var nm = val("qsName"), ot = val("qsOwnerTitle"), pe = String($("#qsPersona").value || "");
+  var skey2 = val("qsSearchKey");
   var oldPersona = String(((SETUP_SNAPSHOT || {}).persona || {}).text || "");
   if (oq) vals["bot.ownerQQ"] = oq;
   if (qq) vals["bot.selfId"] = qq;
@@ -2506,6 +2509,7 @@ function setupSave(btn){
   if (base) vals["llm.baseUrl"] = base;
   if (mdl) vals["llm.model"] = mdl;
   if (key) vals["llm.apiKey"] = key;
+  if (skey2) vals["search.apiKey"] = skey2;
   if (nm) vals["agent.name"] = nm;
   if (ot) vals["bot.ownerCallName"] = ot;
   vals["agent.wakeWords"] = QSWAKE.slice();

@@ -87,6 +87,18 @@ sudo -u mmzbot env MMZBOT_DATA=/var/lib/mmzbot python3 /opt/mmzbot/phone-bot-v2.
 
 **未通过时检查：** 检查每个键名和值。`10000`、`1234567890`、`987654321` 和 `sk-PLACEHOLDER…` 都是占位值，不能留在最终配置中。
 
+### 可选：配置网页搜索 API Key
+
+配置搜索服务 API Key 后，网页搜索可使用百度千帆搜索。未配置时会回退到必应 RSS，搜索结果与能力可能有所不同。将 `<搜索服务 API Key>` 替换为你在搜索服务平台获取的密钥：
+
+```bash
+sudo -u mmzbot env MMZBOT_DATA=/var/lib/mmzbot python3 /opt/mmzbot/phone-bot-v2.py --set search.apiKey=<搜索服务API密钥>
+```
+
+**预期结果：** `✓ 已保存（1 项），下一条消息就按新值走`。此项为可选配置；之后可用相同命令更新密钥。
+
+**未通过时检查：** 确认命令使用服务用户 `mmzbot` 运行，并且 `MMZBOT_DATA` 与本体配置一致；检查 API Key 是否正确。
+
 ### 4. 安装并启动 systemd 服务
 
 仓库单元默认使用 `/opt/mmzbot`、`/var/lib/mmzbot` 和 `mmzbot` 用户：

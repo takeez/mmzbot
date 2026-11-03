@@ -77,6 +77,17 @@ python "$MMZBOT_DIR\phone-bot-v2.py" --set `
 
 **未通过时检查：** 确认 `$env:MMZBOT_DATA` 是绝对路径，并且之后 `--check`、启动脚本和任务计划都使用这个数据目录。`--set bot.token` 会同步更新 `bot.token`、`bot.napcatToken`、`napcat.token`。
 
+### 4. 可选：配置网页搜索 API Key
+
+配置搜索服务 API Key 后，网页搜索可使用百度千帆搜索。未配置时会回退到必应 RSS，搜索结果与能力可能有所不同。将 `<搜索服务 API Key>` 替换为你在搜索服务平台获取的密钥：
+
+```powershell
+$env:MMZBOT_DATA = $MMZBOT_DATA
+python "$MMZBOT_DIR\phone-bot-v2.py" --set "search.apiKey=<搜索服务API密钥>"
+```
+
+**预期结果：** `✓ 已保存（1 项），下一条消息就按新值走`。此项为可选配置；之后可用相同命令更新密钥。
+
 ### 4. 前台启动本体
 
 ```powershell

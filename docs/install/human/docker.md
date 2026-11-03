@@ -82,6 +82,16 @@ docker compose exec -T mmzbot python3 phone-bot-v2.py --set \
 
 **未通过时检查：** 确认命令在 compose 项目目录运行，容器里的数据目录是 `/data`。必须使用 `http://napcat:3000`；容器内的 `127.0.0.1` 指向本体容器本身。
 
+### 5. 可选：配置网页搜索 API Key
+
+配置搜索服务 API Key 后，网页搜索可使用百度千帆搜索。未配置时会回退到必应 RSS，搜索结果与能力可能有所不同。将 `<搜索服务 API Key>` 替换为你在搜索服务平台获取的密钥，在 Compose 项目目录执行：
+
+```bash
+docker compose exec -T mmzbot python3 phone-bot-v2.py --set 'search.apiKey=<搜索服务API密钥>'
+```
+
+**预期结果：** `✓ 已保存（1 项），下一条消息就按新值走`。此项为可选配置；之后可用相同命令更新密钥。
+
 ### 5. 确认本体面板
 
 ```bash

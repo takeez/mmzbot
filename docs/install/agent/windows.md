@@ -62,7 +62,19 @@ python "$MMZBOT_DIR\phone-bot-v2.py" --set "bot.selfId=$SELFID" "bot.groups=$GRO
 # 失败：确认数据目录、键名、真实 QQ 号/群号/密钥；占位值不能用于验收
 ```
 
-## 4.1 安装语义记忆依赖与模型（必需）
+## 4.1 可选：配置增强网页搜索
+
+推荐配置百度千帆搜索 API Key；未配置时将使用必应 RSS，搜索能力可能有所下降。将 `<搜索服务API密钥>` 替换为实际密钥：
+
+```powershell
+$env:MMZBOT_DATA = $MMZBOT_DATA
+python "$MMZBOT_DIR\phone-bot-v2.py" --set "search.apiKey=<搜索服务API密钥>"
+"exit=$LASTEXITCODE"
+# 期望：出现“✓ 已保存（1 项）”，exit=0
+# 失败：确认使用与本体配置相同的 Python、数据目录和密钥
+```
+
+## 4.2 安装语义记忆依赖与模型（必需）
 
 在运行 MMZBOT 的同一 Python 环境中安装依赖，并下载模型到数据目录：
 

@@ -64,6 +64,8 @@ KEYS = (
     # 扩展包下载白名单的**额外**域名：默认那几个在 capabilities.DEFAULT_HOSTS
     "capability.extraHosts",
     "capability.downloadProxy", "capability.allowUnsafe",
+    # 搜索 key（百度千帆）：写 <数据目录>/search-key.txt；不填就走必应 RSS
+    "search.apiKey",
 )
 
 # 「最近一次收到 NapCat 上报」的时间（只活在内存里；重启就没了 —— 它只用来
@@ -403,6 +405,16 @@ def _owner_title():
         return ""
 
 
+def _search_key_masked():
+    """搜索 key 只回 "已设置" 或空（和 llm.apiKey 一个纪律，不回明文）。"""
+    try:
+        p = base.existing_or_data("search-key.txt")
+        with open(p, encoding="utf-8") as f:
+            return "****" if f.read().strip() else ""
+    except Exception:
+        return ""
+
+
 def _memory_ready():
     """语义记忆能不能用：三个依赖 + 三个模型文件。
 
@@ -508,6 +520,7 @@ def snapshot():
             "pcStatus.computerName": _s(ps.get("computerName")),
             "capability.extraHosts": _extra_hosts_now(),
             "capability.downloadProxy": _s((base.cfg().get("capability") or {}).get("downloadProxy")),
+            "search.apiKey": _search_key_masked(),
         },
         "blocks": blocks,
         "checklist": checklist,
@@ -584,6 +597,25 @@ def _sync_group_store(keep, notes):
         base.log("初始化：同步 groups.json 失败（不影响 local-config）：%r" % e)
 
 
+def _write_search_key(key):
+    """把千帆搜索的 key 写进 `<数据目录>/search-key.txt`（0600），并让 web 重新读。"""
+    path = os.path.join(base.DATA_DIR, "search-key.txt")
+    d = os.path.dirname(path)
+    if d and not os.path.isdir(d):
+        os.makedirs(d, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(str(key).strip() + "\n")
+    try:
+        os.chmod(path, 0o600)
+    except Exception:
+        pass
+    try:
+        from . import web
+        web.reset_key()
+    except Exception:
+        pass
+
+
 def save(values):
     """校验 + 写 `local-config.json` + 热生效。返回 `(ok, message, snapshot)`。"""
     if not isinstance(values, dict) or not values:
@@ -636,7 +668,7 @@ def save(values):
                 if v not in ("none", "low", "medium", "high", "off", "max"):
                     raise ValueError("思考强度只能是 none / low / medium / high")
                 plan.append((key, v))
-            elif key == "llm.apiKey":
+            elif key in ("llm.apiKey", "search.apiKey"):
                 k = _s(raw)
                 if not k or set(k) == {"*"}:
                     continue
@@ -767,17 +799,21 @@ def save(values):
                 _set_path(patch, "llm.apiKey", val)
                 # 有 keyFile 的话它会盖过 apiKey ✗ 顺手清掉，别让"填了不生效"
                 _set_path(patch, "llm.keyFile", "")
+            elif key == "search.apiKey":
+                _write_search_key(val)
+                notes.append("搜索：走百度千帆（没填就走必应 RSS）")
             else:
                 _set_path(patch, key, val)
     except ValueError as e:
         return False, "没保存：" + str(e), snapshot()
 
-    if not patch:
+    if not patch and not notes:
         return False, "没有要改的值", snapshot()
 
-    okw = base.save_local(patch)
-    if not okw:
-        return False, "写不进 local-config.json（磁盘满了？权限？）", snapshot()
+    if patch:
+        okw = base.save_local(patch)
+        if not okw:
+            return False, "写不进 local-config.json（磁盘满了？权限？）", snapshot()
 
     # 主落点写成功了，再同步 groups.json（「群」那一页也看得见这些备注）
     if group_side is not None:

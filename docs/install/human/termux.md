@@ -87,6 +87,16 @@ proot-distro login debian -- bash -lc 'cd /root/mmzbot && MMZBOT_DATA=/root/mmzb
 
 先把上面命令里的 `<同一串token>` 换成刚生成的 token。`--set bot.token` 会同步写 `bot.token`、`bot.napcatToken` 和 `napcat.token`。
 
+**可选：配置网页搜索 API Key**
+
+配置搜索服务 API Key 后，网页搜索可使用百度千帆搜索。未配置时会回退到必应 RSS，搜索结果与能力可能有所不同。将 `<搜索服务 API Key>` 替换为你在搜索服务平台获取的密钥，在 Termux 中执行：
+
+```bash
+proot-distro login debian -- bash -lc 'cd /root/mmzbot && MMZBOT_DATA=/root/mmzbot python3 phone-bot-v2.py --set search.apiKey="<搜索服务API密钥>"'
+```
+
+**预期结果：** `✓ 已保存（1 项），下一条消息就按新值走`。此项为可选配置；之后可用相同命令更新密钥。
+
 检查仓库的 `runinc.sh` 是否已经能从 Termux 调入 Debian。若没有，在 Termux 家目录创建：
 
 ```bash

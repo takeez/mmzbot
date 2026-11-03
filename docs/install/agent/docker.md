@@ -82,7 +82,18 @@ printf 'exit=%s\n' "$?"
 # 失败：检查真实 QQ 号、群号、密钥和键名；容器之间访问 NapCat 用服务名 napcat
 ```
 
-## 5.1 安装语义记忆模型（必需）
+## 5.1 可选：配置增强网页搜索
+
+推荐配置百度千帆搜索 API Key；未配置时将使用必应 RSS，搜索能力可能有所下降。将 `<搜索服务API密钥>` 替换为实际密钥：
+
+```bash
+docker compose exec -T mmzbot python3 phone-bot-v2.py --set 'search.apiKey=<搜索服务API密钥>'
+printf 'exit=%s\n' "$?"
+# 期望：出现“✓ 已保存（1 项）”，退出码 0
+# 失败：确认命令在 Compose 项目目录执行，并检查密钥
+```
+
+## 5.2 安装语义记忆模型（必需）
 
 `docker compose up -d --build` 已在镜像构建时按 `requirements.txt` 安装三个 Python 依赖。下载模型到持久化数据卷：
 

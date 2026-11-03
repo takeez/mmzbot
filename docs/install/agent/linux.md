@@ -108,7 +108,17 @@ printf 'exit=%s\n' "$?"
 # 失败：确认真实 QQ 号、群号、模型密钥与 MMZBOT_DATA；检查目录属主
 ```
 
-## 6. 安装并启动 systemd
+## 6. 可选：配置增强网页搜索
+
+推荐配置百度千帆搜索 API Key；未配置时将使用必应 RSS，搜索能力可能有所下降。将 `<搜索服务API密钥>` 替换为实际密钥：
+
+```bash
+sudo -u "$RUN_USER" env MMZBOT_DATA="$MMZBOT_DATA" python3 "$MMZBOT_DIR/phone-bot-v2.py" --set search.apiKey=<搜索服务API密钥>
+# 期望：出现“✓ 已保存（1 项）”
+# 失败：确认使用与本体配置相同的运行用户和 MMZBOT_DATA
+```
+
+## 7. 安装并启动 systemd
 
 ```bash
 sudo cp "$MMZBOT_DIR/mmzbot.service" /etc/systemd/system/mmzbot.service

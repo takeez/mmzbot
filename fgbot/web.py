@@ -73,6 +73,13 @@ def set_transport(fn):
     _POST = fn
 
 
+def reset_key():
+    """清掉缓存，下次搜索重新读 `search-key.txt`（设置页 / --set 改完立刻生效）。"""
+    global _KEY, _KEY_READ
+    _KEY = None
+    _KEY_READ = False
+
+
 def _key():
     """千帆的 key：手机上的 `search-key.txt`，**进程内只读一次**。读不到就是 None。
 
